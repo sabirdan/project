@@ -52,8 +52,8 @@ class ControlForm(QWidget):
         self.player_warning = QMediaPlayer()
         self.player_alarm = QMediaPlayer()
         
-        warn_path = os.path.join(self.base_dir, "warning.wav")
-        alarm_path = os.path.join(self.base_dir, "alarm.wav")
+        warn_path = os.path.join(self.base_dir, "yellowSound.mp3")
+        alarm_path = os.path.join(self.base_dir, "redSound.mp3")
         
         if os.path.exists(warn_path):
             self.playlist_warn = QMediaPlaylist()
@@ -340,7 +340,7 @@ class ControlForm(QWidget):
         self.video_label.setStyleSheet("background-color: black;")
         self.video_label.setAlignment(Qt.AlignCenter)
 
-        video_filename = "video.mp4"
+        video_filename = "videoBG.mp4"
         video_path = os.path.join(self.base_dir, video_filename)
 
         if os.path.exists(video_path):

@@ -1,5 +1,6 @@
+import os
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 
 
@@ -215,17 +216,23 @@ class InstructionForm(QWidget):
         y_pos = 20
 
         block_w = (w - (side_margin * 2) - gap) // 2 
+        
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        img1_path = os.path.join(base_dir, "assets", "hand1.png")
+        img2_path = os.path.join(base_dir, "assets", "hand2.png")
 
-        box1 = QLabel("1 пример", parent)
+        box1 = QLabel(parent)
         box1.setGeometry(side_margin, y_pos, block_w, block_h)
-        box1.setStyleSheet("background-color: white; border: none;")
         box1.setAlignment(Qt.AlignCenter)
-
-        box2 = QLabel("2 пример", parent)
+        pixmap1 = QPixmap(img1_path)
+        box1.setPixmap(pixmap1.scaled(block_w, block_h, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        
+        box2 = QLabel(parent)
         box2.setGeometry(side_margin + block_w + gap, y_pos, block_w, block_h)
-        box2.setStyleSheet("background-color: white; border: none;")
         box2.setAlignment(Qt.AlignCenter)
-
+        pixmap2 = QPixmap(img2_path)
+        box2.setPixmap(pixmap2.scaled(block_w, block_h, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        
         lbl_hint = QLabel("Наклеить электроды как показано\nна рисунке и подключить контакты", parent)
         lbl_hint.setGeometry(side_margin, y_pos + block_h + 15, w - (side_margin * 2), 60)
         lbl_hint.setWordWrap(True)

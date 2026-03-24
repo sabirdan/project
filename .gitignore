@@ -2,7 +2,4 @@ __pycache__/
 operators
 .idea
 
-*.mp3
-*.mp4
-*.wav
 *.csv
