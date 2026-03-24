@@ -9,11 +9,10 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    FACE_REC_OK, FR_TOLERANCE, _make_icon, _id_str,
+    OPENCV_FACE_OK, _make_icon, _id_str,
     _next_id, _safe_csv_cell, _now_date_str, _now_time_str,
     _draw_to_label_with_dpr, _opencv_save_jpg,
-    fr_extract_single_face_encoding_from_bgr,
-    fr_find_match_id, fr_load_known_encodings
+    get_cv_face, cv_find_match, cv_load_known_faces
 )
 
 
@@ -345,7 +344,7 @@ class RegistrationForm(QWidget):
 
     def _load_known_encodings_once(self):
         if self._known_enc_cache is None:
-            self._known_enc_cache = fr_load_known_encodings(self.ops_dir, exclude_id=self.current_id)
+            self._known_enc_cache = cv_load_known_faces(self.ops_dir, exclude_id=self.current_id)
         return self._known_enc_cache
 
     def _try_verify(self):
@@ -353,69 +352,35 @@ class RegistrationForm(QWidget):
             self._set_status(False, assigned=self.current_id is not None)
             return
 
-        if not FACE_REC_OK:
+        if not OPENCV_FACE_OK:
             self._set_status(False, assigned=True)
-            QMessageBox.critical(self, "Идентификация", "face_recognition недоступен. Верификация по ТЗ невозможна.")
+            QMessageBox.critical(self, "Идентификация", "OpenCV распознавание недоступно.")
             return
 
-        live_enc, live_loc = fr_extract_single_face_encoding_from_bgr(self.last_frame)
+        live_face_gray, live_loc = get_cv_face(self.last_frame)
 
-        if live_enc is None:
+        if live_face_gray is None:
             self._set_status(False, assigned=True)
-            r = QMessageBox.question(
-                self,
-                "Идентификация",
-                "Лицо не определено (или найдено несколько лиц).\nПройти идентификацию заново?",
-                QMessageBox.Yes | QMessageBox.No
-            )
+            r = QMessageBox.question(self, "Идентификация", 
+                                    "Лицо не определено. Повторить?",
+                                    QMessageBox.Yes | QMessageBox.No)
             if r == QMessageBox.Yes:
                 QTimer.singleShot(700, self._try_verify)
             return
-
 
         known = self._load_known_encodings_once()
-        match_id = fr_find_match_id(known, live_enc, tolerance=FR_TOLERANCE)
+        match_id = cv_find_match(known, live_face_gray)
+        
         if match_id is not None:
             self._set_status(False, assigned=True)
-            r = QMessageBox.question(
-                self,
-                "Идентификация",
-                "Этот оператор уже зарегистрирован.\nПройти идентификацию заново?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if r == QMessageBox.Yes:
-                QTimer.singleShot(700, self._try_verify)
+            QMessageBox.warning(self, "Идентификация", f"Оператор уже зарегистрирован под ID {match_id}")
             return
 
         photo_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.current_id)}.jpg")
-
         saved = _opencv_save_jpg(self.last_frame, photo_path, face_loc=live_loc)
 
         if not saved:
-            try:
-                top, right, bottom, left = live_loc
-                h, w = self.last_frame.shape[:2]
-                top = max(0, min(top, h - 1))
-                left = max(0, min(left, w - 1))
-                bottom = max(top + 1, min(bottom, h))
-                right = max(left + 1, min(right, w))
-
-                if bottom > top and right > left:
-                    face_crop = self.last_frame[top:bottom, left:right]
-                    try:
-                        from PIL import Image
-                        rgb_image = cv2.cvtColor(face_crop, cv2.COLOR_BGR2RGB)
-                        pil_image = Image.fromarray(rgb_image)
-                        pil_image.save(photo_path, 'JPEG', quality=95)
-                        saved = True
-                    except Exception as e:
-                        print(f"Ошибка сохранения через PIL: {e}")
-            except Exception as e:
-                print(f"Ошибка в альтернативном способе: {e}")
-
-        if not saved:
-            self._set_status(False, assigned=True)
-            QMessageBox.critical(self, "Сохранение", "Не удалось сохранить фото оператора.")
+            QMessageBox.critical(self, "Ошибка", "Не удалось сохранить фото.")
             return
 
         self._set_status(True, assigned=True)

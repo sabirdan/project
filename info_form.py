@@ -10,11 +10,9 @@ from PyQt5.QtWidgets import (
 from instruction_form import InstructionForm
 
 from utils import (
-    FACE_REC_OK, FR_TOLERANCE, _make_icon, _parse_hms_to_seconds,
+    OPENCV_FACE_OK, _make_icon, _parse_hms_to_seconds,
     _seconds_to_hms, _id_str, _draw_to_label_with_dpr,
-    fr_extract_single_face_encoding_from_file,
-    fr_extract_single_face_encoding_from_bgr,
-    fr_compare_two
+    get_cv_face, cv_compare_faces
 )
 
 
@@ -22,28 +20,18 @@ class FaceWorker(QObject):
     finished = pyqtSignal(bool)
 
     @pyqtSlot(object, object)
-    def process_frame(self, frame, ref_enc):
+    def process_frame(self, frame, ref_face_gray):
         try:
-            target_width = 150
-            h, w = frame.shape[:2]
-            ratio = target_width / float(w)
-            target_height = int(h * ratio)
-            small_frame = cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_AREA)
+            live_face_gray, _ = get_cv_face(frame)
 
-            rgb_small = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-
-            live_enc, _ = fr_extract_single_face_encoding_from_bgr(rgb_small)
-
-            if live_enc is None:
+            if live_face_gray is None:
                 self.finished.emit(False)
                 return
 
-            is_same = fr_compare_two(ref_enc, live_enc, tolerance=FR_TOLERANCE)
+            is_same = cv_compare_faces(ref_face_gray, live_face_gray)
             self.finished.emit(is_same)
-        except Exception as e:
-            print(f"Worker error: {e}")
+        except Exception:
             self.finished.emit(False)
-
 
 class InfoForm(QWidget):
     sig_process = pyqtSignal(object, object)
@@ -100,8 +88,8 @@ class InfoForm(QWidget):
         self._reset_state()
         self._update_status()
 
-        if not FACE_REC_OK:
-            QMessageBox.warning(self, "Зависимость", "face_recognition не найден.")
+        if not OPENCV_FACE_OK:
+            QMessageBox.warning(self, "Зависимость", "Модуль распознавания OpenCV не настроен.")
 
         if self._start_camera():
             QTimer.singleShot(1200, self._try_verify)
@@ -314,7 +302,11 @@ class InfoForm(QWidget):
     def _get_reference_encoding_cached(self):
         if self._ref_enc_cache is not None: return self._ref_enc_cache
         ref_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.op_id)}.jpg")
-        self._ref_enc_cache = fr_extract_single_face_encoding_from_file(ref_path)
+
+        import cv2
+        ref_img = cv2.imread(ref_path)
+        face_gray, _ = get_cv_face(ref_img)
+        self._ref_enc_cache = face_gray
         return self._ref_enc_cache
 
     def _check_presence(self):
@@ -336,21 +328,21 @@ class InfoForm(QWidget):
             QTimer.singleShot(500, self._try_verify)
             return
 
-        ref_enc = self._get_reference_encoding_cached()
-        if ref_enc is None:
-            QMessageBox.critical(self, "Ошибка", "Эталонное фото не найдено.")
+        ref_face_gray = self._get_reference_encoding_cached()
+        if ref_face_gray is None:
+            QMessageBox.critical(self, "Ошибка", "Эталонное лицо не найдено в файле.")
             return
 
-        live_enc, _ = fr_extract_single_face_encoding_from_bgr(self.last_frame)
-        self.is_verified = fr_compare_two(ref_enc, live_enc, tolerance=FR_TOLERANCE) if live_enc is not None else False
+        live_face_gray, _ = get_cv_face(self.last_frame)
+        self.is_verified = cv_compare_faces(ref_face_gray, live_face_gray)
 
         if self.is_verified:
             self.is_present = True
             self.presence_timer.start()
             self._update_status()
         else:
-            r = QMessageBox.question(self, "Идентификация", "Верификация не пройдена. Повторить?",
-                                     QMessageBox.Yes | QMessageBox.No)
+            r = QMessageBox.question(self, "Идентификация", "Лицо не опознано. Повторить?",
+                                    QMessageBox.Yes | QMessageBox.No)
             if r == QMessageBox.Yes: QTimer.singleShot(700, self._try_verify)
 
     def _finish(self):

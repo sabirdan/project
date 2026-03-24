@@ -7,24 +7,20 @@ from datetime import datetime
 import cv2
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import (
-    QImage, QPixmap, QPainter, QPen, QGuiApplication
+    QImage, QPixmap, QGuiApplication
 )
 from PyQt5.QtWidgets import QLabel
 
-FACE_REC_OK = False
-face_recognition = None
+CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
+OPENCV_FACE_OK = False
 try:
-    import face_recognition
-    try:
-        import face_recognition_models
-        FACE_REC_OK = True
-    except Exception as e:
-        FACE_REC_OK = False
-except ImportError as e:
-    FACE_REC_OK = False
-except Exception as e:
-    FACE_REC_OK = False
+    RECOGNIZER = cv2.face.LBPHFaceRecognizer_create()
+    OPENCV_FACE_OK = True
+except AttributeError:
+    RECOGNIZER = None
+    print("Внимание: LBPHFaceRecognizer недоступен. Установите opencv-contrib-python.")
 
 
 def _safe_csv_cell(s: str) -> str:
@@ -36,20 +32,16 @@ def _safe_csv_cell(s: str) -> str:
 def _now_date_str():
     return datetime.now().strftime("%d-%m-%Y")
 
-
 def _now_time_str():
     return datetime.now().strftime("%H:%M:%S")
-
 
 def _ensure_dirs(base_dir: str):
     ops_dir = os.path.join(base_dir, "operators")
     os.makedirs(ops_dir, exist_ok=True)
     return ops_dir
 
-
 def _csv_path(base_dir: str):
     return os.path.join(base_dir, "operators_db.csv")
-
 
 def _ensure_csv(csv_file: str):
     if os.path.exists(csv_file):
@@ -60,7 +52,6 @@ def _ensure_csv(csv_file: str):
             "id", "last_name", "first_name", "middle_name", "age",
             "date", "time", "software_start_time", "drive_duration"
         ])
-
 
 def _next_id(csv_file: str) -> int:
     max_id = 0
@@ -75,24 +66,17 @@ def _next_id(csv_file: str) -> int:
                 pass
     return max_id + 1
 
-
 def _id_str(n: int) -> str:
     return str(n).zfill(5)
 
-
 def _make_icon(ok: bool, size: int = 28) -> QPixmap:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    if ok:
-        img_path = os.path.join(base_dir, "assets", "accept.png")
-    else:
-        img_path = os.path.join(base_dir, "assets", "cancel.png")
-        
+    img_name = "accept.png" if ok else "cancel.png"
+    img_path = os.path.join(base_dir, "assets", img_name)
     pm = QPixmap(img_path)
-    
     if not pm.isNull():
         return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-
+    return QPixmap()
 
 def _parse_hms_to_seconds(s: str) -> int:
     try:
@@ -104,7 +88,6 @@ def _parse_hms_to_seconds(s: str) -> int:
     except Exception:
         return 0
 
-
 def _seconds_to_hms(x: int) -> str:
     x = max(0, int(x))
     h = x // 3600
@@ -112,7 +95,6 @@ def _seconds_to_hms(x: int) -> str:
     m = x // 60
     s = x % 60
     return f"{h:02d}:{m:02d}:{s:02d}"
-
 
 def _find_operator_by_id(csv_file: str, op_id: int):
     if not os.path.exists(csv_file):
@@ -122,176 +104,63 @@ def _find_operator_by_id(csv_file: str, op_id: int):
         for row in r:
             try:
                 rid = int(str(row.get("id", "")).strip() or "0")
+                if rid == op_id:
+                    return row
             except Exception:
                 continue
-            if rid == op_id:
-                return row
     return None
 
 
-def _iter_operator_photos(ops_dir: str):
+def get_cv_face(frame_bgr):
+    if frame_bgr is None:
+        return None, None
+    
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    faces = FACE_CASCADE.detectMultiScale(gray, 1.1, 5, minSize=(100, 100))
+    
+    if len(faces) == 1:
+        (x, y, w, h) = faces[0]
+        face_gray = gray[y:y+h, x:x+w]
+        return face_gray, (y, x+w, y+h, x)
+    return None, None
+
+def cv_compare_faces(ref_gray, live_gray, threshold=65):
+    if not OPENCV_FACE_OK or ref_gray is None or live_gray is None:
+        return False
+    try:
+        RECOGNIZER.train([ref_gray], np.array([1]))
+        _, confidence = RECOGNIZER.predict(live_gray)
+        return confidence < threshold
+    except Exception:
+        return False
+
+def cv_load_known_faces(ops_dir, exclude_id=None):
+    known = []
     if not os.path.isdir(ops_dir):
-        return
+        return known
+    
     for name in os.listdir(ops_dir):
-        if not name.lower().endswith(".jpg"):
+        if not (name.startswith("ID_") and name.lower().endswith(".jpg")):
             continue
-        if not name.startswith("ID_"):
-            continue
-        path = os.path.join(ops_dir, name)
-        yield name, path
-
-
-FR_TOLERANCE = 0.45
-
-
-def _fr_prepare_rgb_from_bgr(frame_bgr):
-    if frame_bgr is None:
-        return None
-
-    if not isinstance(frame_bgr, np.ndarray):
-        try:
-            frame_bgr = np.asarray(frame_bgr)
-        except Exception:
-            return None
-
-    if frame_bgr.dtype != np.uint8:
-        try:
-            frame_bgr = np.clip(frame_bgr, 0, 255).astype(np.uint8, copy=False)
-        except Exception:
-            frame_bgr = frame_bgr.astype(np.uint8, copy=True)
-
-    if frame_bgr.ndim == 2:
-        frame_bgr = cv2.cvtColor(frame_bgr, cv2.COLOR_GRAY2BGR)
-    elif frame_bgr.ndim == 3 and frame_bgr.shape[2] == 4:
-        frame_bgr = cv2.cvtColor(frame_bgr, cv2.COLOR_BGRA2BGR)
-    elif frame_bgr.ndim != 3 or frame_bgr.shape[2] != 3:
-        return None
-
-    rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-    rgb = np.ascontiguousarray(rgb, dtype=np.uint8)
-
-    if not rgb.flags["C_CONTIGUOUS"]:
-        rgb = rgb.copy(order="C")
-
-    return rgb
-
-
-def fr_extract_single_face_encoding_from_bgr(frame_bgr, model="hog"):
-    if not FACE_REC_OK:
-        return None, None
-    if frame_bgr is None:
-        return None, None
-
-    try:
-        rgb = _fr_prepare_rgb_from_bgr(frame_bgr)
-        if rgb is not None:
-            locs = face_recognition.face_locations(rgb, model=model)
-            if len(locs) == 1:
-                encs = face_recognition.face_encodings(rgb, locs)
-                if len(encs) == 1:
-                    return encs[0], locs[0]
-    except RuntimeError:
-        pass
-    except Exception:
-        pass
-
-    try:
-        bgr = frame_bgr
-        if not isinstance(bgr, np.ndarray):
-            bgr = np.asarray(bgr)
-
-        if bgr.dtype != np.uint8:
-            bgr = np.clip(bgr, 0, 255).astype(np.uint8)
-
-        if bgr.ndim == 2:
-            bgr = cv2.cvtColor(bgr, cv2.COLOR_GRAY2BGR)
-        elif bgr.ndim == 3 and bgr.shape[2] == 4:
-            bgr = cv2.cvtColor(bgr, cv2.COLOR_BGRA2BGR)
-        elif bgr.ndim != 3 or bgr.shape[2] != 3:
-            return None, None
-
-        ok, buf = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
-        if not ok:
-            return None, None
-
-        bio = io.BytesIO(buf.tobytes())
-        img = face_recognition.load_image_file(bio)
-
-        locs = face_recognition.face_locations(img, model=model)
-        if len(locs) != 1:
-            return None, None
-
-        encs = face_recognition.face_encodings(img, locs)
-        if len(encs) != 1:
-            return None, None
-
-        return encs[0], locs[0]
-    except Exception:
-        return None, None
-
-
-def fr_extract_single_face_encoding_from_file(path: str, model="hog"):
-    if not FACE_REC_OK or not path or not os.path.exists(path):
-        return None
-
-    try:
-        img = face_recognition.load_image_file(path)
-        locs = face_recognition.face_locations(img, model=model)
-        if len(locs) != 1:
-            return None
-        encs = face_recognition.face_encodings(img, locs)
-        if len(encs) != 1:
-            return None
-        return encs[0]
-    except Exception:
-        return None
-
-
-def fr_find_match_id(known_list, probe_enc, tolerance=FR_TOLERANCE):
-    if not FACE_REC_OK or probe_enc is None or not known_list:
-        return None
-
-    ids = [kid for kid, _ in known_list]
-    encs = [kenc for _, kenc in known_list]
-
-    try:
-        matches = face_recognition.compare_faces(encs, probe_enc, tolerance=tolerance)
-        if True in matches:
-            return ids[matches.index(True)]
-        return None
-    except Exception:
-        return None
-
-
-def fr_compare_two(ref_enc, live_enc, tolerance=FR_TOLERANCE) -> bool:
-    if not FACE_REC_OK or ref_enc is None or live_enc is None:
-        return False
-    try:
-        return bool(face_recognition.compare_faces([ref_enc], live_enc, tolerance=tolerance)[0])
-    except Exception:
-        return False
-
-
-def fr_load_known_encodings(ops_dir: str, exclude_id: int = None):
-    if not FACE_REC_OK:
-        return []
-
-    result = []
-    for name, path in _iter_operator_photos(ops_dir):
         try:
             raw_id = name.replace("ID_", "").replace(".jpg", "")
             pid = int(raw_id)
+            if exclude_id is not None and pid == exclude_id:
+                continue
+            
+            img = cv2.imread(os.path.join(ops_dir, name))
+            face_gray, _ = get_cv_face(img)
+            if face_gray is not None:
+                known.append((pid, face_gray))
         except Exception:
             continue
+    return known
 
-        if exclude_id is not None and pid == exclude_id:
-            continue
-
-        enc = fr_extract_single_face_encoding_from_file(path)
-        if enc is not None:
-            result.append((pid, enc))
-
-    return result
+def cv_find_match(known_faces, live_gray):
+    for pid, ref_gray in known_faces:
+        if cv_compare_faces(ref_gray, live_gray):
+            return pid
+    return None
 
 
 def _crop_to_aspect(img, target_w, target_h):
@@ -307,7 +176,6 @@ def _crop_to_aspect(img, target_w, target_h):
         new_h = int(w / aspect_target)
         offset = (h - new_h) // 2
         return img[offset:offset + new_h, :]
-
 
 def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
     screen = label.screen() or QGuiApplication.primaryScreen()
@@ -330,61 +198,18 @@ def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
     pm.setDevicePixelRatio(dpr)
     label.setPixmap(pm)
 
-
 def _opencv_save_jpg(frame_bgr, filepath: str, face_loc=None):
     if frame_bgr is None or not filepath:
-        print(f"Пустой кадр или путь: {filepath}")
         return False
 
     try:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    except Exception as e:
-        print(f"Ошибка создания директории: {e}")
-        return False
-
-    save_frame = frame_bgr
-
-    if face_loc:
-        try:
+        
+        save_frame = frame_bgr
+        if face_loc:
             top, right, bottom, left = face_loc
-            h, w = frame_bgr.shape[:2]
-            top = max(0, min(top, h - 1))
-            left = max(0, min(left, w - 1))
-            bottom = max(top + 1, min(bottom, h))
-            right = max(left + 1, min(right, w))
+            save_frame = frame_bgr[top:bottom, left:right]
 
-            if bottom > top and right > left:
-                face_crop = frame_bgr[top:bottom, left:right]
-                if face_crop is not None and face_crop.size > 0:
-                    if face_crop.dtype != np.uint8:
-                        face_crop = face_crop.astype(np.uint8)
-                    if face_crop.max() > 255 or face_crop.min() < 0:
-                        face_crop = np.clip(face_crop, 0, 255).astype(np.uint8)
-                    save_frame = face_crop
-                else:
-                    save_frame = frame_bgr
-            else:
-                save_frame = frame_bgr
-
-        except Exception as e:
-            print(f"Ошибка при обрезке лица: {e}")
-            save_frame = frame_bgr
-
-    try:
-        success = cv2.imwrite(filepath, save_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
-        if not success:
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 95]
-            result, encimg = cv2.imencode('.jpg', save_frame, encode_param)
-            if result:
-                with open(filepath, 'wb') as f:
-                    f.write(encimg.tobytes())
-                success = True
-
-        if success:
-            return True
-        else:
-            return False
-
-    except Exception as e:
-        print(f"Ошибка при сохранении файла {filepath}: {e}")
+        return cv2.imwrite(filepath, save_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+    except Exception:
         return False

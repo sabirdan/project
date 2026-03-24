@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import (
 )
 
 from analysis_form import SerialWorker
-from remote_form import AuthScreen, RemoteForm
 
 
 class ControlForm(QWidget):
@@ -74,16 +73,6 @@ class ControlForm(QWidget):
         self._init_logic()
 
         self.show()
-
-        self.remote_window = RemoteForm()
-        self.remote_window.show()
-
-        self.auth_screen = AuthScreen(self.remote_window)
-        self.auth_screen.center_on_parent(self.remote_window)
-
-        self.auth_screen.show()
-
-        self.auth_screen.raise_()
 
     def _load_settings_from_csv(self):
         target_id = str(self.operator_row.get("id", ""))

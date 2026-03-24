@@ -11,6 +11,7 @@ from utils import (
 )
 from registration_form import RegistrationForm
 from auth_screen import AuthScreen
+from remote_form import RemoteForm, AuthScreen as RemoteAuth
 
 
 class StartScreen(QWidget):
@@ -130,4 +131,13 @@ if __name__ == "__main__":
 
     w = StartScreen()
     w.show()
+
+    remote_win = RemoteForm()
+    remote_win.show()
+
+    remote_auth = RemoteAuth(remote_win)
+    remote_auth.center_on_parent(remote_win)
+    remote_auth.show()
+    remote_auth.raise_()
+
     sys.exit(app.exec_())
