@@ -177,8 +177,8 @@ class ControlForm(QWidget):
         btn_w = total_btn_w // 3
         
         base_style = "color: white; border: none; border-radius: 18px; font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
-        green_style = f"QPushButton {{ background-color: #35C43A; {base_style} }} QPushButton:hover {{ background-color: #45D44A; }}"
-        purple_style = f"QPushButton {{ background-color: #8E3566; {base_style} }} QPushButton:hover {{ background-color: #9E4576; }}"
+        green_style = f"QPushButton {{ background-color: #44CC29; {base_style} }} QPushButton:hover {{ background-color: #45D44A; }}"
+        purple_style = f"QPushButton {{ background-color: #8D3C7F; {base_style} }} QPushButton:hover {{ background-color: #9E4576; }}"
 
         self.btn_instr = QPushButton("Инструкция", menu_frame)
         self.btn_instr.setGeometry(0, btn_y, btn_w, btn_h)
@@ -196,7 +196,7 @@ class ControlForm(QWidget):
 
         logo_frame = QFrame(self)
         logo_frame.setGeometry(col_one_w, 0, col_one_w, self.HEADER_H)
-        logo_frame.setStyleSheet("background: #35C43A; border: none;")
+        logo_frame.setStyleSheet("background: #44CC29; border: none;")
         
         lbl_logo = QLabel("НейроБодр", logo_frame)
         lbl_logo.setGeometry(0, 10, col_one_w, 50)

@@ -328,7 +328,7 @@ class RemoteForm(QWidget):
     def _build_ui(self):
         header = QFrame(self)
         header.setGeometry(0, 0, self.W, self.HEADER_H)
-        header.setStyleSheet("background-color: #35C43A; border: none;")
+        header.setStyleSheet("background-color: #44CC29; border: none;")
 
         t1 = QLabel("НейроБодр", header)
         t1.setGeometry(0, 6, self.W, 62)

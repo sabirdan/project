@@ -131,7 +131,7 @@ class InfoForm(QWidget):
     def _build_ui(self):
         header = QFrame(self)
         header.setGeometry(0, 0, self.W, self.HEADER_H)
-        header.setStyleSheet("background-color: #35C43A; border: none;")
+        header.setStyleSheet("background-color: #44CC29; border: none;")
 
         t1 = QLabel("НейроБодр", header)
         t1.setGeometry(0, 6, self.W, 62)
@@ -274,14 +274,14 @@ class InfoForm(QWidget):
         if self.is_verified and self.is_present:
             self.status_text.setText("Оператор определен")
             self.status_icon.setPixmap(_make_icon(True))
-            self.id_banner.setStyleSheet("background-color: #20E31A; color: black;")
+            self.id_banner.setStyleSheet("background-color: #13FA23; color: black;")
             self.id_banner.setText(f"ID {_id_str(self.op_id)}")
             self.info_hint.setText('Для запуска программы\nнажмите "Далее"')
             self.btn_next.setEnabled(True)
         else:
             self.status_text.setText("Оператор не определен")
             self.status_icon.setPixmap(_make_icon(False))
-            self.id_banner.setStyleSheet("background-color: #E31A1A; color: black;")
+            self.id_banner.setStyleSheet("background-color: #FA1313; color: black;")
             self.id_banner.setText("ID не определен")
             self.info_hint.setText("Запуск программы\nневозможен")
             self.btn_next.setEnabled(False)
