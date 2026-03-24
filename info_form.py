@@ -12,7 +12,7 @@ from instruction_form import InstructionForm
 from utils import (
     OPENCV_FACE_OK, _make_icon, _parse_hms_to_seconds,
     _seconds_to_hms, _id_str, _draw_to_label_with_dpr,
-    get_cv_face, cv_compare_faces
+    get_cv_face, cv_compare_faces, _opencv_imread_unicode
 )
 
 
@@ -300,11 +300,16 @@ class InfoForm(QWidget):
             _draw_to_label_with_dpr(frame, self.cam_view)
 
     def _get_reference_encoding_cached(self):
-        if self._ref_enc_cache is not None: return self._ref_enc_cache
+        if self._ref_enc_cache is not None: 
+            return self._ref_enc_cache
+        
         ref_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.op_id)}.jpg")
-
-        import cv2
-        ref_img = cv2.imread(ref_path)
+        
+        ref_img = _opencv_imread_unicode(ref_path)
+        
+        if ref_img is None:
+            return None
+            
         face_gray, _ = get_cv_face(ref_img)
         self._ref_enc_cache = face_gray
         return self._ref_enc_cache

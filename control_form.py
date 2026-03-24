@@ -343,7 +343,7 @@ class ControlForm(QWidget):
 
         self.timer_video = QTimer(self)
         self.timer_video.timeout.connect(self._update_video_frame)
-        self.timer_video.start(33)  # ~30 FPS
+        self.timer_video.start(33)
 
         self.top_strip = QFrame(self.video_label)
         self.top_strip.setGeometry(0, 0, w, 70)

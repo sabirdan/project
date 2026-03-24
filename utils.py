@@ -148,7 +148,7 @@ def cv_load_known_faces(ops_dir, exclude_id=None):
             if exclude_id is not None and pid == exclude_id:
                 continue
             
-            img = cv2.imread(os.path.join(ops_dir, name))
+            img = _opencv_imread_unicode(os.path.join(ops_dir, name))
             face_gray, _ = get_cv_face(img)
             if face_gray is not None:
                 known.append((pid, face_gray))
@@ -201,15 +201,30 @@ def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
 def _opencv_save_jpg(frame_bgr, filepath: str, face_loc=None):
     if frame_bgr is None or not filepath:
         return False
-
     try:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
         save_frame = frame_bgr
         if face_loc:
             top, right, bottom, left = face_loc
             save_frame = frame_bgr[top:bottom, left:right]
 
-        return cv2.imwrite(filepath, save_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+        if save_frame.size == 0:
+            return False
+
+        success, buffer = cv2.imencode(".jpg", save_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+        if success:
+            with open(filepath, "wb") as f:
+                f.write(buffer)
+            return True
+        return False
     except Exception:
         return False
+    
+def _opencv_imread_unicode(filepath):
+    try:
+        import numpy as np
+        img_array = np.fromfile(filepath, dtype=np.uint8)
+        return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    except Exception as e:
+        print(f"Ошибка при чтении файла {filepath}: {e}")
+        return None

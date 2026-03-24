@@ -189,7 +189,7 @@ class RemoteForm(QWidget):
         csv_start_time = user_row.get("software_start_time", "")
         if csv_start_time:
             try:
-                t_parts = csv_start_time.split(":")  # HH:MM:SS
+                t_parts = csv_start_time.split(":") 
                 now = datetime.datetime.now()
                 self.start_time = now.replace(hour=int(t_parts[0]), minute=int(t_parts[1]), second=int(t_parts[2]))
             except:
