@@ -3,7 +3,7 @@ import re
 import csv
 import cv2
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QLineEdit, QFrame, QMessageBox, QWidget, QLabel, QPushButton,
 )
@@ -63,8 +63,7 @@ class RegistrationForm(QWidget):
         self._known_enc_cache = None
         
         self.last_frame = None
-        self.cam_view.clear()
-        self.cam_view.setStyleSheet("background-color: white; border: none;")
+        self.cam_view.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__), "assets", "face.png")).scaled(self.cam_view.width(), self.cam_view.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _build_ui(self):
         header = QFrame(self)
@@ -146,7 +145,7 @@ class RegistrationForm(QWidget):
 
         self.cam_view = QLabel(self.mid)
         self.cam_view.setGeometry(cam_x, cam_y, cam_w, cam_h)
-        self.cam_view.setStyleSheet("background-color: white; border: none;")
+        self.cam_view.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__), "assets", "face.png")).scaled(cam_w, cam_h, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.cam_view.setAlignment(Qt.AlignCenter)
 
         right_content_margin = 30
@@ -329,8 +328,7 @@ class RegistrationForm(QWidget):
                 pass
             self.cap = None
         
-        self.cam_view.clear()
-        self.cam_view.setStyleSheet("background-color: white; border: none;")
+        self.cam_view.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__), "assets", "face.png")).scaled(self.cam_view.width(), self.cam_view.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _grab_frame(self):
         if self.cap is None:

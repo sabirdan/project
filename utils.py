@@ -81,27 +81,17 @@ def _id_str(n: int) -> str:
 
 
 def _make_icon(ok: bool, size: int = 28) -> QPixmap:
-    pm = QPixmap(size, size)
-    pm.fill(Qt.transparent)
-    p = QPainter(pm)
-    p.setRenderHint(QPainter.Antialiasing, True)
-
-    p.setPen(Qt.NoPen)
-    p.setBrush(Qt.green if ok else Qt.red)
-    p.drawEllipse(0, 0, size - 1, size - 1)
-
-    pen2 = QPen(Qt.white)
-    pen2.setWidth(3)
-    p.setPen(pen2)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
     if ok:
-        p.drawLine(int(size * 0.25), int(size * 0.55), int(size * 0.45), int(size * 0.75))
-        p.drawLine(int(size * 0.43), int(size * 0.73), int(size * 0.78), int(size * 0.30))
+        img_path = os.path.join(base_dir, "assets", "accept.png")
     else:
-        p.drawLine(int(size * 0.30), int(size * 0.30), int(size * 0.70), int(size * 0.70))
-        p.drawLine(int(size * 0.70), int(size * 0.30), int(size * 0.30), int(size * 0.70))
-
-    p.end()
-    return pm
+        img_path = os.path.join(base_dir, "assets", "cancel.png")
+        
+    pm = QPixmap(img_path)
+    
+    if not pm.isNull():
+        return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
 
 def _parse_hms_to_seconds(s: str) -> int:

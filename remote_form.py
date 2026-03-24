@@ -490,9 +490,9 @@ class RemoteForm(QWidget):
         self.lbl_left.setText("Оставшееся время: <b>00:00:00</b>")
         self.lbl_status.setText("Состояние: ")
 
-        self.photo.setPixmap(QPixmap())
-        self.photo.setText(" Фото")
-        self.photo.setStyleSheet("background-color: white; color: gray;")
+        default_img = os.path.join(self.base_dir, "assets", "user.png")
+        pix = QPixmap(default_img)
+        self.photo.setPixmap(pix.scaled(self.photo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _draw_shapes(self, parent):
         shape_s = 80
