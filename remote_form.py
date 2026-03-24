@@ -1,0 +1,542 @@
+import sys
+import os
+import csv
+import datetime
+from PyQt5.QtCore import Qt, QRegularExpression, QTimer, QUrl, QSize
+from PyQt5.QtGui import (
+    QFont, QPixmap, QGuiApplication, QRegularExpressionValidator, QImage
+)
+from PyQt5.QtWidgets import (
+    QWidget, QLabel, QPushButton, QFrame, QApplication, QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox
+)
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
+
+
+def _get_csv_path():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, "operators_db.csv")
+
+
+class AuthScreen(QWidget):
+    def __init__(self, remote_form):
+        super().__init__()
+        self.remote_form = remote_form
+
+        self.setFixedSize(400, 170)
+        self.setWindowTitle("Авторизация")
+        self.setStyleSheet("background-color: #D9D9D9;")
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(10, 28, 28, 22)
+        root.setSpacing(0)
+
+        title = QLabel("Введите ID_оператора", self)
+        title.setWordWrap(True)
+        title.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        title.setFont(QFont("Times New Roman", 22, QFont.Normal))
+        title.setStyleSheet("color: #000000; background: transparent;")
+        root.addWidget(title)
+
+        root.addStretch(1)
+
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(5)
+
+        self.in_id = QLineEdit(self)
+        self.in_id.setFixedHeight(52)
+        self.in_id.setFont(QFont("Times New Roman", 24, QFont.Normal))
+        self.in_id.setStyleSheet("""
+            QLineEdit {
+                background-color: #FFFFFF;
+                border: none;
+                padding-left: 12px;
+            }
+        """)
+        self.in_id.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+"), self))
+
+        self.btn_login = QPushButton("Далее", self)
+        self.btn_login.setFixedSize(156, 52)
+        self.btn_login.setCursor(Qt.PointingHandCursor)
+        self.btn_login.setStyleSheet("""
+            QPushButton {
+                background-color: #2C2C2C;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 8px;
+                font-family: "Times New Roman";
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton:hover { background-color: #3A3A3A; }
+            QPushButton:pressed { background-color: #1F1F1F; }
+        """)
+
+        self.btn_login.clicked.connect(self.on_login)
+
+        row.addWidget(self.in_id, 1)
+        row.addWidget(self.btn_login, 0)
+        root.addLayout(row)
+
+    def on_login(self):
+        user_id = self.in_id.text().strip()
+        if not user_id:
+            return
+
+        csv_path = _get_csv_path()
+        if not os.path.exists(csv_path):
+            QMessageBox.critical(self, "Ошибка", f"Файл {csv_path} не найден!")
+            return
+
+        found_user = None
+        try:
+            with open(csv_path, "r", newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get("id") == user_id:
+                        found_user = row
+                        break
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка чтения CSV: {e}")
+            return
+
+        if found_user:
+            self.remote_form.init_session(found_user)
+            self.remote_form.show()
+            self.close()
+        else:
+            QMessageBox.warning(self, "Ошибка", "Оператор с таким ID не найден")
+
+    def center_on_parent(self, parent):
+        parent_rect = parent.frameGeometry()
+        self_rect = self.frameGeometry()
+        x = parent_rect.x() + (parent_rect.width() - self_rect.width()) // 2
+        y = parent_rect.y() + (parent_rect.height() - self_rect.height()) // 2
+        self.move(x, y)
+
+
+class RemoteForm(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.W = 1000
+        self.H = 450
+        self.HEADER_H = 120
+        self.BODY_H = self.H - self.HEADER_H
+        self.SECTION_H = 44
+        self.GRID_T = 4
+
+        self.setFixedSize(self.W, self.H)
+        self.setWindowTitle("Удаленный мониторинг")
+        self.setStyleSheet("background-color: #D9D9D9;")
+
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        self.player_warning = QMediaPlayer()
+        self.player_alarm = QMediaPlayer()
+        self._setup_audio()
+
+        self.timer_monitor = QTimer(self)
+        self.timer_monitor.timeout.connect(self._update_monitor_data)
+
+        self.operator_data = {}
+        self.start_time = None
+        self.current_status = "NORMAL"
+
+        self._build_ui()
+
+        self.auth_window = None
+
+    def _setup_audio(self):
+        warn_path = os.path.join(self.base_dir, "warning.wav")
+        alarm_path = os.path.join(self.base_dir, "alarm.wav")
+
+        if os.path.exists(warn_path):
+            self.playlist_warn = QMediaPlaylist()
+            self.playlist_warn.addMedia(QMediaContent(QUrl.fromLocalFile(warn_path)))
+            self.playlist_warn.setPlaybackMode(QMediaPlaylist.Loop)
+            self.player_warning.setPlaylist(self.playlist_warn)
+
+        if os.path.exists(alarm_path):
+            self.playlist_alarm = QMediaPlaylist()
+            self.playlist_alarm.addMedia(QMediaContent(QUrl.fromLocalFile(alarm_path)))
+            self.playlist_alarm.setPlaybackMode(QMediaPlaylist.Loop)
+            self.player_alarm.setPlaylist(self.playlist_alarm)
+
+    def init_session(self, user_row):
+        self.operator_data = user_row
+
+        l_name = user_row.get("last_name", "")
+        f_name = user_row.get("first_name", "")
+        p_name = user_row.get("patronymic", "")
+        age = user_row.get("age", "")
+
+        self.lbl_name.setText(f"{l_name} {f_name}\n{p_name}")
+        self.lbl_age.setText(f"{age} лет")
+
+        op_id = user_row.get("id", "")
+        photo_path = os.path.join(self.base_dir, "operators", f"ID_0000{op_id}.jpg")
+
+        if os.path.exists(photo_path):
+            pix = QPixmap(photo_path)
+            scaled_pix = pix.scaled(self.photo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.photo.setPixmap(scaled_pix)
+            self.photo.setText("")
+        else:
+            self.photo.setPixmap(QPixmap())
+            self.photo.setText("Нет фото")
+
+        csv_start_time = user_row.get("software_start_time", "")
+        if csv_start_time:
+            try:
+                t_parts = csv_start_time.split(":")  # HH:MM:SS
+                now = datetime.datetime.now()
+                self.start_time = now.replace(hour=int(t_parts[0]), minute=int(t_parts[1]), second=int(t_parts[2]))
+            except:
+                self.start_time = datetime.datetime.now()
+        else:
+            self.start_time = datetime.datetime.now()
+
+        self.lbl_start.setText(f"Время запуска ПО: <b>{self.start_time.strftime('%H:%M:%S')}</b>")
+
+        self.timer_monitor.start(1000)
+
+    def _update_monitor_data(self):
+        current_pulse = 0
+        status_from_file = "NORMAL"
+
+        csv_path = _get_csv_path()
+        target_id = self.operator_data.get("id")
+
+        if os.path.exists(csv_path) and target_id:
+            try:
+                with open(csv_path, "r", newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        if row.get("id") == target_id:
+                            p_str = row.get("current_pulse", "0")
+                            current_pulse = int(p_str) if p_str.isdigit() else 0
+                            status_from_file = row.get("operator_status", "NORMAL")
+                            break
+            except Exception:
+                pass
+
+        self.current_status = status_from_file
+
+        now = datetime.datetime.now()
+        date_str = now.strftime("%d.%m.%Y")
+        time_str = now.strftime("%H:%M:%S")
+        self.lbl_dt.setText(f"Дата/время: <b>{date_str} / {time_str}</b>")
+
+        delta = now - self.start_time
+        seconds_in_road = int(delta.total_seconds())
+        h = seconds_in_road // 3600
+        m = (seconds_in_road % 3600) // 60
+        s = seconds_in_road % 60
+        self.lbl_drive.setText(f"Время в дороге: <b>{h:02d}:{m:02d}:{s:02d}</b>")
+
+        total_work_seconds = 9 * 3600
+        remaining = total_work_seconds - seconds_in_road
+        if remaining < 0: remaining = 0
+        rh = remaining // 3600
+        rm = (remaining % 3600) // 60
+        rs = remaining % 60
+        self.lbl_left.setText(f"Оставшееся время: <b>{rh:02d}:{rm:02d}:{rs:02d}</b>")
+
+        self._update_indication_block(current_pulse)
+        self._update_terminal_block(current_pulse)
+
+    def _update_indication_block(self, pulse):
+
+        if pulse > 0:
+            self.lbl_pulse_val.setText(str(pulse))
+        else:
+            self.lbl_pulse_val.setText("--")
+
+        common_border = "border: 2px solid #0000FF;"
+        st_green_on = f"background-color: #07D40B; {common_border}"
+        st_yellow_on = f"background-color: #FFFC00; {common_border}"
+        st_red_on = f"background-color: #D0021B; {common_border}"
+        st_off = f"background-color: #D0CECF; {common_border}"
+
+        if self.current_status == "NORMAL":
+            self.player_warning.stop()
+            self.player_alarm.stop()
+
+            self.lbl_status.setText("Состояние: <span style='color:green'>НОРМА</span>")
+            self.lbl_pulse_val.setStyleSheet("color: #009900; background: transparent;")
+
+            self.lbl_sq_green.setStyleSheet(st_green_on)
+            self.lbl_sq_yellow.setStyleSheet(st_off)
+            self.lbl_sq_red.setStyleSheet(st_off)
+
+        elif self.current_status == "WARNING":
+            if self.player_warning.state() != QMediaPlayer.PlayingState:
+                self.player_warning.play()
+            self.player_alarm.stop()
+
+            self.lbl_status.setText("Состояние: <span style='color:#FFD700'>ВНИМАНИЕ</span>")
+            self.lbl_pulse_val.setStyleSheet("color: #FFD700; background: transparent;")
+
+            self.lbl_sq_green.setStyleSheet(st_off)
+            self.lbl_sq_yellow.setStyleSheet(st_yellow_on)
+            self.lbl_sq_red.setStyleSheet(st_off)
+
+        elif self.current_status == "CRITICAL":
+            self.player_warning.stop()
+            if self.player_alarm.state() != QMediaPlayer.PlayingState:
+                self.player_alarm.play()
+
+            self.lbl_status.setText("Состояние: <span style='color:red'>КРИТИЧНО!</span>")
+            self.lbl_pulse_val.setStyleSheet("color: red; background: transparent;")
+
+            self.lbl_sq_green.setStyleSheet(st_off)
+            self.lbl_sq_yellow.setStyleSheet(st_off)
+            self.lbl_sq_red.setStyleSheet(st_red_on)
+
+    def _update_terminal_block(self, pulse):
+        p_str = str(pulse) if pulse > 0 else "--"
+        term_txt = ""
+
+        if self.current_status == "NORMAL":
+            term_txt = f"Состояние нормальное\nПульс {p_str}"
+        elif self.current_status == "WARNING":
+            term_txt = f"Состояние оператора выходит за пределы «ВНИМАНИЕ»\nПульс {p_str}\nЗапуск звукового оповещения «ВНИМАНИЕ»"
+        elif self.current_status == "CRITICAL":
+            term_txt = f"Состояние критичное!\nПульс {p_str}\nЗапуск звукового оповещения!"
+
+        self.mid_info.setText(term_txt)
+
+    def stop_program(self):
+        self.timer_monitor.stop()
+        self.player_warning.stop()
+        self.player_alarm.stop()
+
+        self._refresh_left_info()
+        self.mid_info.setText("")
+        self.lbl_pulse_val.setText("")
+        self.lbl_sq_green.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
+        self.lbl_sq_yellow.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
+        self.lbl_sq_red.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
+
+        self.hide()
+
+        self.auth_window = AuthScreen(self)
+        self.auth_window.center_on_parent(self)
+        self.auth_window.show()
+
+    def _build_ui(self):
+        header = QFrame(self)
+        header.setGeometry(0, 0, self.W, self.HEADER_H)
+        header.setStyleSheet("background-color: #35C43A; border: none;")
+
+        t1 = QLabel("НейроБодр", header)
+        t1.setGeometry(0, 6, self.W, 62)
+        t1.setAlignment(Qt.AlignCenter)
+        t1.setStyleSheet("color: white; background: transparent;")
+        t1.setFont(QFont("Times New Roman", 40, QFont.Bold))
+
+        line = QFrame(header)
+        line.setGeometry(int(self.W * 0.16), 76, int(self.W * 0.68), 2)
+        line.setStyleSheet("background-color: white; border: none;")
+
+        t2 = QLabel("Программа для мониторинга состояния водителей", header)
+        t2.setGeometry(0, 80, self.W, 30)
+        t2.setAlignment(Qt.AlignCenter)
+        t2.setStyleSheet("color: white; background: transparent;")
+        t2.setFont(QFont("Times New Roman", 16, QFont.Normal))
+
+        header_bottom = QFrame(self)
+        header_bottom.setGeometry(0, self.HEADER_H - self.GRID_T, self.W, self.GRID_T)
+        header_bottom.setStyleSheet("background-color: #FFFFFF; border: none;")
+        header_bottom.raise_()
+
+        body = QFrame(self)
+        body.setGeometry(0, self.HEADER_H, self.W, self.BODY_H)
+        body.setStyleSheet("background-color: #D9D9D9; border: none;")
+
+        col_w = self.W // 3
+        col3_w = self.W - col_w * 2
+
+        self.left = QFrame(body)
+        self.left.setGeometry(0, 0, col_w, self.BODY_H)
+        self.left.setStyleSheet("background-color: #D9D9D9; border: none;")
+
+        self.mid = QFrame(body)
+        self.mid.setGeometry(col_w, 0, col_w, self.BODY_H)
+        self.mid.setStyleSheet("background-color: black; border: none;")
+
+        self.right = QFrame(body)
+        self.right.setGeometry(col_w * 2, 0, col3_w, self.BODY_H)
+        self.right.setStyleSheet("background-color: #D9D9D9; border: none;")
+
+        self._section_header(self.left, "Информация оператора", col_w)
+        self._section_header(self.mid, "Терминальный блок", col_w)
+        self._section_header(self.right, "Блок индикации", col3_w)
+
+        self._build_left_info(col_w)
+
+        self.mid_info = QLabel("", self.mid)
+        self.mid_info.setGeometry(20, self.SECTION_H + 20, col_w - 40, 150)
+        self.mid_info.setStyleSheet("color: white; background: transparent;")
+        self.mid_info.setFont(QFont("Consolas", 11, QFont.Normal))  # Шрифт как в терминале
+        self.mid_info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.mid_info.setWordWrap(True)
+
+        self.lbl_pulse_title = QLabel("Пульс:", self.right)
+        self.lbl_pulse_title.setGeometry(20, self.SECTION_H + 20, 120, 50)
+        self.lbl_pulse_title.setStyleSheet("color: black; background: transparent;")
+        self.lbl_pulse_title.setFont(QFont("Times New Roman", 28, QFont.Bold))
+
+        self.lbl_pulse_val = QLabel("", self.right)
+        self._draw_shapes(self.right)
+        self.lbl_pulse_val.setGeometry(150, self.SECTION_H + 15, 100, 60)
+        self.lbl_pulse_val.setStyleSheet("color: #D32F2F; background: transparent;")
+        self.lbl_pulse_val.setFont(QFont("Times New Roman", 42, QFont.Bold))
+
+        btn_w, btn_h = 130, 40
+        self.btn_next = QPushButton("Стоп программа", self.right)
+        self.btn_next.setGeometry(col3_w - btn_w - 20, self.BODY_H - btn_h - 20, btn_w, btn_h)
+        self.btn_next.setCursor(Qt.PointingHandCursor)
+        self.btn_next.setStyleSheet("""
+            QPushButton {
+                background-color: #2C2C2C; color: #FFFFFF; border: none;
+                border-radius: 6px; font-size: 14px; font-weight: 600;
+            }
+            QPushButton:hover { background-color: #404040; }
+        """)
+        self.btn_next.clicked.connect(self.stop_program)
+
+        sep1 = QFrame(body)
+        sep1.setGeometry(col_w - self.GRID_T // 2, 0, self.GRID_T, self.BODY_H)
+        sep1.setStyleSheet("background-color: #FFFFFF; border: none;")
+
+        sep2 = QFrame(body)
+        sep2.setGeometry(col_w * 2 - self.GRID_T // 2, 0, self.GRID_T, self.BODY_H)
+        sep2.setStyleSheet("background-color: #FFFFFF; border: none;")
+
+        sep_h = QFrame(body)
+        sep_h.setGeometry(0, self.SECTION_H, self.W, self.GRID_T)
+        sep_h.setStyleSheet("background-color: #FFFFFF; border: none;")
+
+        sep1.raise_()
+        sep2.raise_()
+        sep_h.raise_()
+
+    def _section_header(self, parent: QWidget, text: str, width: int):
+        h = QFrame(parent)
+        h.setGeometry(0, 0, width, self.SECTION_H)
+        h.setStyleSheet("background-color: #D9D9D9; border: none;")
+        lbl = QLabel(text, h)
+        lbl.setGeometry(0, 0, width, self.SECTION_H)
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet("color: black; background: transparent;")
+        lbl.setFont(QFont("Times New Roman", 14, QFont.Bold))
+
+    def _build_left_info(self, col_w: int):
+        y = self.SECTION_H + 20
+        line_spacing = 30
+
+        photo_size = 90
+        self.photo = QLabel(self.left)
+        self.photo.setGeometry(10, y, photo_size, 100)
+        self.photo.setStyleSheet("background-color: white; border: none;")
+        self.photo.setAlignment(Qt.AlignCenter)
+        self.photo.setScaledContents(True)
+
+        text_x = 18 + photo_size + 10
+        self.lbl_name = QLabel(self.left)
+        self.lbl_name.setGeometry(text_x, y + 5, col_w - text_x - 18, 70)
+        self.lbl_name.setStyleSheet("color: black; background: transparent;")
+        self.lbl_name.setFont(QFont("Times New Roman", 16, QFont.Normal))
+        self.lbl_name.setWordWrap(True)
+
+        self.lbl_age = QLabel(self.left)
+        self.lbl_age.setGeometry(text_x, y + 70, col_w - text_x - 18, 28)
+        self.lbl_age.setStyleSheet("color: black; background: transparent;")
+        self.lbl_age.setFont(QFont("Times New Roman", 16, QFont.Normal))
+
+        y2 = y + photo_size + 15
+
+        self.lbl_dt = QLabel(self.left)
+        self.lbl_dt.setGeometry(18, y2, col_w - 36, 26)
+        self.lbl_dt.setStyleSheet("color: black; background: transparent;")
+        self.lbl_dt.setFont(QFont("Times New Roman", 14))
+
+        self.lbl_start = QLabel(self.left)
+        self.lbl_start.setGeometry(18, y2 + line_spacing, col_w - 36, 26)
+        self.lbl_start.setFont(QFont("Times New Roman", 14))
+
+        self.lbl_drive = QLabel(self.left)
+        self.lbl_drive.setGeometry(18, y2 + line_spacing * 2, col_w - 36, 26)
+        self.lbl_drive.setFont(QFont("Times New Roman", 14))
+
+        self.lbl_left = QLabel(self.left)
+        self.lbl_left.setGeometry(18, y2 + line_spacing * 3, col_w - 36, 26)
+        self.lbl_left.setFont(QFont("Times New Roman", 14))
+
+        self.lbl_status = QLabel(self.left)
+        self.lbl_status.setGeometry(18, y2 + line_spacing * 4, col_w - 36, 26)
+        self.lbl_status.setFont(QFont("Times New Roman", 14))
+
+        self._refresh_left_info()
+
+    def _refresh_left_info(self):
+        self.lbl_name.setText("Фамилия Имя Отчество")
+        self.lbl_age.setText("Возраст")
+        self.lbl_dt.setText("Дата/время: <b>00.00.0000 / 00:00:00</b>")
+        self.lbl_start.setText("Время запуска ПО: <b>00:00:00</b>")
+        self.lbl_drive.setText("Время в дороге: <b>00:00:00</b>")
+        self.lbl_left.setText("Оставшееся время: <b>00:00:00</b>")
+        self.lbl_status.setText("Состояние: ")
+
+        self.photo.setPixmap(QPixmap())
+        self.photo.setText(" Фото")
+        self.photo.setStyleSheet("background-color: white; color: gray;")
+
+    def _draw_shapes(self, parent):
+        shape_s = 80
+        gap = 10
+        common_style = "border: 2px solid #0000FF;"
+
+        total_width = 3 * shape_s + 2 * gap
+        total_height = shape_s
+
+        parent_rect = parent.geometry()
+        parent_width = parent_rect.width()
+        parent_height = parent_rect.height()
+
+        center_x = parent_width // 2
+        center_y = parent_height // 2 + 20
+
+        x_start = center_x - total_width // 2
+        y_start = center_y - total_height // 2
+
+        self.lbl_sq_green = QLabel(parent)
+        self.lbl_sq_green.setGeometry(x_start, y_start, shape_s, shape_s)
+        self.lbl_sq_green.setStyleSheet(f"background-color: white; {common_style}")
+
+        self.lbl_sq_yellow = QLabel(parent)
+        self.lbl_sq_yellow.setGeometry(x_start + shape_s + gap, y_start, shape_s, shape_s)
+        self.lbl_sq_yellow.setStyleSheet(f"background-color: white; {common_style}")
+
+        self.lbl_sq_red = QLabel(parent)
+        self.lbl_sq_red.setGeometry(x_start + 2 * (shape_s + gap), y_start, shape_s, shape_s)
+        self.lbl_sq_red.setStyleSheet(f"background-color: white; {common_style}")
+
+
+if __name__ == "__main__":
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
+    app = QApplication(sys.argv)
+    app.setFont(QFont("Times New Roman", 14))
+
+    main_window = RemoteForm()
+
+    auth_window = AuthScreen(main_window)
+    auth_window.center_on_parent(main_window)
+    auth_window.show()
+
+    sys.exit(app.exec_())
