@@ -1,6 +1,7 @@
 import os
 import cv2
 import csv
+import time
 import datetime
 import utils
 from PyQt5.QtCore import QPoint, Qt, QUrl, QTimer, QThread, pyqtSlot
@@ -61,8 +62,8 @@ class ControlForm(QWidget):
         self.GRID_T = 4
 
         self.fps_estimate = 30 
-        self.frames_eyes_closed = 0
-        self.frames_head_tilted = 0
+        self.eyes_closed_start_time = None
+        self.head_tilted_start_time = None
 
         self.setFixedSize(self.W, self.H)
         self.setWindowTitle("НейроБодр - Мониторинг")
@@ -482,7 +483,6 @@ class ControlForm(QWidget):
 
         if len(faces) > 0:
             detected_face = True
-            self.frames_head_tilted = 0
             (x, y, w, h) = sorted(faces, key=lambda f: f[2]*f[3], reverse=True)[0]
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
             roi_gray = gray[y:y+h, x:x+w]
@@ -493,29 +493,40 @@ class ControlForm(QWidget):
                 for (ex, ey, ew, eh) in eyes:
                     cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (255, 0, 0), 2)
 
+        current_time = time.time()
+
         if detected_face and not detected_eyes:
-            self.frames_eyes_closed += 1
-        elif not detected_face:
-            self.frames_head_tilted += 1
-            self.frames_eyes_closed += 1
+            if self.eyes_closed_start_time is None:
+                self.eyes_closed_start_time = current_time
         else:
-            self.frames_eyes_closed = 0
-            self.frames_head_tilted = 0
+            if not detected_face:
+                if self.eyes_closed_start_time is None:
+                    self.eyes_closed_start_time = current_time
+            else:
+                self.eyes_closed_start_time = None
+
+        if not detected_face:
+            if self.head_tilted_start_time is None:
+                self.head_tilted_start_time = current_time
+        else:
+            self.head_tilted_start_time = None
 
         utils._draw_to_label_with_dpr(frame, self.lbl_cam_feed)
         self._check_status()
 
     def _check_status(self):
-        seconds_closed = self.frames_eyes_closed / self.fps_estimate
-        seconds_tilted = self.frames_head_tilted / self.fps_estimate
-        p = self.current_pulse_val
+        current_time = time.time()
         
+        seconds_closed = (current_time - self.eyes_closed_start_time) if self.eyes_closed_start_time else 0
+        seconds_tilted = (current_time - self.head_tilted_start_time) if self.head_tilted_start_time else 0
+        
+        p = self.current_pulse_val
         norm_min = self.pulse_norm_min
         norm_max = self.pulse_norm_max
         crit = self.pulse_crit_threshold
 
         is_pulse_red = (p > 0 and (p <= norm_min * 0.7 or p >= crit))
-        is_eyes_red = (seconds_tilted > 7.0 and seconds_closed > 7.0)
+        is_eyes_red = (seconds_closed > 7.0 or seconds_tilted > 7.0)
 
         is_pulse_yellow = (p > 0 and (p <= norm_min * 0.8 or (p >= norm_max * 1.2 and p < crit)))
         is_eyes_yellow = (seconds_closed > 4.0)
