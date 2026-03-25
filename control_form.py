@@ -3,14 +3,38 @@ import cv2
 import csv
 import datetime
 import utils
-from PyQt5.QtCore import Qt, QUrl, QTimer, QThread, pyqtSlot
+from PyQt5.QtCore import QPoint, Qt, QUrl, QTimer, QThread, pyqtSlot
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
-from PyQt5.QtGui import QFont, QImage, QPixmap
+from PyQt5.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPixmap, QPolygon
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QMessageBox
 )
 
 from analysis_form import SerialWorker
+
+class ShapeWidget(QWidget):
+    def __init__(self, shape_type, color, parent=None):
+        super().__init__(parent)
+        self.shape_type = shape_type
+        self.color = color
+        self.setFixedSize(40, 40)
+
+    def set_color(self, new_color):
+        self.color = new_color
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(self.color)))
+        if self.shape_type == "circle":
+            painter.drawEllipse(0, 0, self.width(), self.height())
+        elif self.shape_type == "triangle":
+            points = [QPoint(self.width() // 2, 0), QPoint(0, self.height()), QPoint(self.width(), self.height())]
+            painter.drawPolygon(QPolygon(points))
+        elif self.shape_type == "square":
+            painter.drawRect(0, 0, self.width(), self.height())
 
 
 class ControlForm(QWidget):
@@ -406,19 +430,15 @@ class ControlForm(QWidget):
         shape_s = 40
         y_pos = 15
         gap = 10
-        common_style = "border: 2px solid #0000FF;"
 
-        self.lbl_sq_green = QLabel(parent)
-        self.lbl_sq_green.setGeometry(10, y_pos, shape_s, shape_s)
-        self.lbl_sq_green.setStyleSheet(f"background-color: #07D40B; {common_style}")
+        self.lbl_sq_green = ShapeWidget("circle", "#7CE4D5", parent)
+        self.lbl_sq_green.move(10, y_pos)
 
-        self.lbl_sq_yellow = QLabel(parent)
-        self.lbl_sq_yellow.setGeometry(10 + shape_s + gap, y_pos, shape_s, shape_s)
-        self.lbl_sq_yellow.setStyleSheet(f"background-color: #FFFC00; {common_style}")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "#F9D849", parent)
+        self.lbl_sq_yellow.move(10 + shape_s + gap, y_pos)
 
-        self.lbl_sq_red = QLabel(parent)
-        self.lbl_sq_red.setGeometry(10 + (shape_s + gap) * 2, y_pos, shape_s, shape_s)
-        self.lbl_sq_red.setStyleSheet(f"background-color: #D0021B; {common_style}")
+        self.lbl_sq_red = ShapeWidget("square", "#D0021B", parent)
+        self.lbl_sq_red.move(10 + (shape_s + gap) * 2, y_pos)
 
     def _draw_grid(self, col_w):
         sep_h = QFrame(self)
@@ -531,24 +551,26 @@ class ControlForm(QWidget):
 
         self.player_warning.stop()
         self.player_alarm.stop()
+        
+        off_color = "#D0CECF"
 
         if self.current_state == "NORMAL":
             self.lbl_state_val.setText("НОРМА")
             self.lbl_state_val.setStyleSheet("color: #009900;")
             self.lbl_pulse_overlay.setStyleSheet("color: #009900; background: transparent;")
             
-            self.lbl_sq_green.setStyleSheet(st_green_on)
-            self.lbl_sq_yellow.setStyleSheet(st_yellow_off)
-            self.lbl_sq_red.setStyleSheet(st_red_off)
+            self.lbl_sq_green.set_color("#7CE4D5")
+            self.lbl_sq_yellow.set_color(off_color)
+            self.lbl_sq_red.set_color(off_color)
 
         elif self.current_state == "WARNING":
             self.lbl_state_val.setText("ВНИМАНИЕ")
             self.lbl_state_val.setStyleSheet("color: #FFD700;")
             self.lbl_pulse_overlay.setStyleSheet("color: #FFD700; background: transparent;")
             
-            self.lbl_sq_green.setStyleSheet(st_green_off)
-            self.lbl_sq_yellow.setStyleSheet(st_yellow_on)
-            self.lbl_sq_red.setStyleSheet(st_red_off)
+            self.lbl_sq_green.set_color(off_color)
+            self.lbl_sq_yellow.set_color("#F9D849")
+            self.lbl_sq_red.set_color(off_color)
             
             self.player_warning.play()
 
@@ -557,9 +579,9 @@ class ControlForm(QWidget):
             self.lbl_state_val.setStyleSheet("color: #FF0000;")
             self.lbl_pulse_overlay.setStyleSheet("color: #FF0000; background: transparent;")
             
-            self.lbl_sq_green.setStyleSheet(st_green_off)
-            self.lbl_sq_yellow.setStyleSheet(st_yellow_off)
-            self.lbl_sq_red.setStyleSheet(st_red_on)
+            self.lbl_sq_green.set_color(off_color)
+            self.lbl_sq_yellow.set_color(off_color)
+            self.lbl_sq_red.set_color("#D0021B")
 
             self.player_alarm.play()
 

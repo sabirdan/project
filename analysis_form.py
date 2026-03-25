@@ -263,7 +263,7 @@ class AnalysisForm(QWidget):
             QPushButton { 
                 background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;
             } 
-            QPushButton:hover { background: #444; }
+            QPushButton:hover { background: #44CC29; }
         """)
         btn_save.clicked.connect(self._save_to_csv)
 
@@ -310,7 +310,10 @@ class AnalysisForm(QWidget):
 
         self.btn_next = QPushButton("Далее", parent)
         self.btn_next.setGeometry(w - 120 - side_margin, 230, 110, 36)
-        self.btn_next.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;}")
+        self.btn_next.setStyleSheet("""
+            QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;}
+            QPushButton:hover { background: #44CC29; }
+        """)
         self.btn_next.clicked.connect(self._go_control)
 
     def _draw_grid(self, col_w, left_body_w):

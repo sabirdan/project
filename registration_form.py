@@ -58,6 +58,7 @@ class RegistrationForm(QWidget):
         
         self._set_status(False, assigned=False)
         self.btn_next.setEnabled(False)
+        self.btn_identify.setEnabled(False)
         
         self._known_enc_cache = None
         
@@ -110,7 +111,27 @@ class RegistrationForm(QWidget):
         self.right.setStyleSheet("background-color: #D9D9D9; border: none;")
 
         self._section_header(self.left, "Регистрация оператора", col_w)
-        self._section_header(self.mid, "Идентификация", col_w)
+        btn_w = 200
+        btn_h = 35
+        btn_x = int((col_w - btn_w) / 2)
+        btn_y = int((self.SECTION_H - btn_h) / 2)
+        
+        self.btn_identify = QPushButton("Идентификация", self.mid)
+        self.btn_identify.setGeometry(btn_x, btn_y, btn_w, btn_h)
+        self.btn_identify.setStyleSheet("""
+            QPushButton {
+                background-color: #2C2C2C; 
+                color: #FFFFFF; 
+                border: none;
+                border-radius: 6px; 
+                font-family: 'Times New Roman'; 
+                font-size: 16px; 
+            }
+            QPushButton:hover { background-color: #44CC29; }
+            QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
+        """)
+        self.btn_identify.clicked.connect(self._on_identify_clicked)
+        self.btn_identify.setEnabled(False)
         self._section_header(self.right, "Информационный блок", col3_w)
 
         field_step = 48
@@ -131,7 +152,7 @@ class RegistrationForm(QWidget):
                 background-color: #2C2C2C; color: #FFFFFF; border: none;
                 border-radius: 6px; font-size: 12px; font-weight: 600;
             }
-            QPushButton:hover { background-color: #3A3A3A; }
+            QPushButton:hover { background-color: #44CC29; }
             QPushButton:pressed { background-color: #1F1F1F; }
         """)
         self.btn_save.clicked.connect(self._on_save)
@@ -184,6 +205,7 @@ class RegistrationForm(QWidget):
                 background-color: #2C2C2C; color: #FFFFFF; border: none;
                 border-radius: 6px; font-size: 12px; font-weight: 600;
             }
+            QPushButton:hover { background-color: #44CC29; }
             QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
         """)
         self.btn_next.setEnabled(False)
@@ -275,8 +297,8 @@ class RegistrationForm(QWidget):
         if not age_s.isdigit():
             return None, "Возраст должен быть числом."
         age = int(age_s)
-        if age < 10 or age > 120:
-            return None, "Возраст выглядит некорректно."
+        if age < 18:
+            return None, "Возраст должен быть не менее 18 лет."
 
         return {
             "last_name": last_name,
@@ -347,6 +369,12 @@ class RegistrationForm(QWidget):
             self._known_enc_cache = cv_load_known_faces(self.ops_dir, exclude_id=self.current_id)
         return self._known_enc_cache
 
+    def _on_identify_clicked(self):
+        if not self._start_camera():
+            return
+        self._set_status(False, assigned=True)
+        QTimer.singleShot(1200, self._try_verify)
+
     def _try_verify(self):
         if self.last_frame is None or self.current_id is None:
             self._set_status(False, assigned=self.current_id is not None)
@@ -361,11 +389,12 @@ class RegistrationForm(QWidget):
 
         if live_face_gray is None:
             self._set_status(False, assigned=True)
-            r = QMessageBox.question(self, "Идентификация", 
-                                    "Лицо не определено. Повторить?",
+            r = QMessageBox.question(self, "Идентификация", "Пройти идентификацию заново?",
                                     QMessageBox.Yes | QMessageBox.No)
             if r == QMessageBox.Yes:
                 QTimer.singleShot(700, self._try_verify)
+            else:
+                self._stop_camera()
             return
 
         known = self._load_known_encodings_once()
@@ -373,7 +402,12 @@ class RegistrationForm(QWidget):
         
         if match_id is not None:
             self._set_status(False, assigned=True)
-            QMessageBox.warning(self, "Идентификация", f"Оператор уже зарегистрирован под ID {match_id}")
+            r = QMessageBox.question(self, "Идентификация", "Пройти идентификацию заново?",
+                                    QMessageBox.Yes | QMessageBox.No)
+            if r == QMessageBox.Yes:
+                QTimer.singleShot(700, self._try_verify)
+            else:
+                self._stop_camera()
             return
 
         photo_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.current_id)}.jpg")
@@ -392,14 +426,10 @@ class RegistrationForm(QWidget):
                 QMessageBox.warning(self, "Проверка данных", err)
                 return
             self.current_id = self._append_csv_row(operator)
-
             self._known_enc_cache = None
 
-        if not self._start_camera():
-            return
-
-        self._set_status(False, assigned=True)
-        QTimer.singleShot(1200, self._try_verify)
+        self.btn_identify.setEnabled(True)
+        QMessageBox.information(self, "Успех", "Данные сохранены. Теперь нажмите «Идентификация» для сканирования лица.")
 
     def _go_start(self):
         self._stop_camera()

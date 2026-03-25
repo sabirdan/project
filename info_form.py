@@ -17,21 +17,20 @@ from utils import (
 
 
 class FaceWorker(QObject):
-    finished = pyqtSignal(bool)
+    finished = pyqtSignal(bool, object)
 
     @pyqtSlot(object, object)
     def process_frame(self, frame, ref_face_gray):
         try:
-            live_face_gray, _ = get_cv_face(frame)
-
+            live_face_gray, loc = get_cv_face(frame)
             if live_face_gray is None:
-                self.finished.emit(False)
+                self.finished.emit(False, None)
                 return
 
             is_same = cv_compare_faces(ref_face_gray, live_face_gray)
-            self.finished.emit(is_same)
+            self.finished.emit(is_same, loc)
         except Exception:
-            self.finished.emit(False)
+            self.finished.emit(False, None)
 
 class InfoForm(QWidget):
     sig_process = pyqtSignal(object, object)
@@ -55,6 +54,8 @@ class InfoForm(QWidget):
         self.face_thread.start()
 
         self.is_processing = False
+        self.last_face_loc = None
+        self.last_face_ok = False
 
         self.cap = None
         self.timer = QTimer(self)
@@ -157,7 +158,23 @@ class InfoForm(QWidget):
         self.right.setGeometry(col_w * 2, 0, col3_w, self.BODY_H)
 
         self._section_header(self.left, "Информация оператора", col_w)
-        self._section_header(self.mid, "Идентификация", col_w)
+        btn_w = 200
+        btn_h = 35
+        btn_x = int((col_w - btn_w) / 2)
+        btn_y = int((self.SECTION_H - btn_h) / 2)
+
+        self.btn_identify_dummy = QPushButton("Идентификация", self.mid)
+        self.btn_identify_dummy.setGeometry(btn_x, btn_y, btn_w, btn_h)
+        self.btn_identify_dummy.setStyleSheet("""
+            QPushButton {
+                background-color: #2C2C2C; 
+                color: #FFFFFF; 
+                border: none;
+                border-radius: 6px; 
+                font-family: 'Times New Roman'; 
+                font-size: 16px; 
+            }
+        """)
         self._section_header(self.right, "Информационный блок", col3_w)
 
         self._build_left_info(col_w)
@@ -193,8 +210,11 @@ class InfoForm(QWidget):
 
         self.btn_next = QPushButton("Далее", self.right)
         self.btn_next.setGeometry(col3_w - right_m - 100, self.SECTION_H + 203, 100, 34)
-        self.btn_next.setStyleSheet(
-            "QPushButton { background-color: #2C2C2C; color: white; border-radius: 6px; } QPushButton:disabled { background-color: #BDBDBD; }")
+        self.btn_next.setStyleSheet("""
+            QPushButton { background-color: #2C2C2C; color: white; border-radius: 6px; } 
+            QPushButton:hover { background-color: #44CC29; }
+            QPushButton:disabled { background-color: #BDBDBD; }
+        """)
         self.btn_next.clicked.connect(self._finish)
 
         sep1 = QFrame(body)
@@ -296,7 +316,13 @@ class InfoForm(QWidget):
         ok, frame = self.cap.read()
         if ok and frame is not None:
             frame = cv2.flip(frame, 1)
-            self.last_frame = frame
+            self.last_frame = frame.copy()
+            
+            if self.last_face_loc:
+                y, right, b, x = self.last_face_loc
+                color = (0, 255, 0) if self.last_face_ok else (0, 0, 255)
+                cv2.rectangle(frame, (x, y), (right, b), color, 2)
+                
             _draw_to_label_with_dpr(frame, self.cam_view)
 
     def _get_reference_encoding_cached(self):
@@ -323,9 +349,11 @@ class InfoForm(QWidget):
             self.is_processing = True
             self.sig_process.emit(self.last_frame.copy(), ref_enc)
 
-    def _on_verification_result(self, is_same_person):
+    def _on_verification_result(self, is_same_person, loc):
         self.is_processing = False
         self.is_present = is_same_person
+        self.last_face_loc = loc
+        self.last_face_ok = is_same_person
         self._update_status()
 
     def _try_verify(self):
@@ -338,15 +366,38 @@ class InfoForm(QWidget):
             QMessageBox.critical(self, "Ошибка", "Эталонное лицо не найдено в файле.")
             return
 
-        live_face_gray, _ = get_cv_face(self.last_frame)
+        live_face_gray, loc = get_cv_face(self.last_frame)
+        
+        if loc is None:
+            self.last_face_loc = None
+            self.last_face_ok = False
+            
+            _draw_to_label_with_dpr(self.last_frame, self.cam_view)
+            from PyQt5.QtWidgets import QApplication
+            QApplication.processEvents()
+
+            r = QMessageBox.question(self, "Идентификация", "Пройти идентификацию заново?", QMessageBox.Yes | QMessageBox.No)
+            if r == QMessageBox.Yes: QTimer.singleShot(700, self._try_verify)
+            return
+
         self.is_verified = cv_compare_faces(ref_face_gray, live_face_gray)
+        self.last_face_loc = loc
+        self.last_face_ok = self.is_verified
+        
+        frame_draw = self.last_frame.copy()
+        y, right, b, x = loc
+        color = (0, 255, 0) if self.is_verified else (0, 0, 255)
+        cv2.rectangle(frame_draw, (x, y), (right, b), color, 2)
+        _draw_to_label_with_dpr(frame_draw, self.cam_view)
+        from PyQt5.QtWidgets import QApplication
+        QApplication.processEvents()
 
         if self.is_verified:
             self.is_present = True
             self.presence_timer.start()
             self._update_status()
         else:
-            r = QMessageBox.question(self, "Идентификация", "Лицо не опознано. Повторить?",
+            r = QMessageBox.question(self, "Идентификация", "Пройти идентификацию заново?",
                                     QMessageBox.Yes | QMessageBox.No)
             if r == QMessageBox.Yes: QTimer.singleShot(700, self._try_verify)
 

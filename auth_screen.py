@@ -56,15 +56,10 @@ class AuthScreen(QWidget):
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("""
             QPushButton {
-                background-color: #2C2C2C;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 8px;
-                font-family: "Times New Roman";
-                font-size: 14px;
-                font-weight: 600;
+                background-color: #2C2C2C; color: #FFFFFF; border: none;
+                border-radius: 8px; font-family: "Times New Roman"; font-size: 14px; font-weight: 600;
             } 
-            QPushButton:hover { background-color: #3A3A3A; }
+            QPushButton:hover { background-color: #44CC29; }
             QPushButton:pressed { background-color: #1F1F1F; }
         """)
 
