@@ -11,6 +11,7 @@ from info_form import InfoForm
 class AuthScreen(QWidget):
     def __init__(self, start_screen, csv_file: str, ops_dir: str, software_start_time: str):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.start_screen = start_screen
         self.csv_file = csv_file
         self.ops_dir = ops_dir
@@ -18,11 +19,49 @@ class AuthScreen(QWidget):
 
         self.info_form = None
 
-        self.setFixedSize(400, 170)
+        self.setFixedSize(400, 204)
         self.setWindowTitle("Авторизация")
         self.setStyleSheet("background-color: #D9D9D9;")
 
-        root = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 5, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(45, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                color: #FF0000; 
+                background: transparent; 
+                border: none; 
+                font-size: 36px; 
+                font-weight: bold;
+            }
+        """)
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        content_container = QWidget(self)
+        main_layout.addWidget(content_container)
+
+        root = QVBoxLayout(content_container)
         root.setContentsMargins(28, 24, 28, 22)
         root.setSpacing(0)
 
@@ -69,7 +108,6 @@ class AuthScreen(QWidget):
 
         self.btn_login.clicked.connect(self._on_login)
         self.in_id.returnPressed.connect(self._on_login)
-
 
     def _on_login(self):
         raw = (self.in_id.text() or "").strip()

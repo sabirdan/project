@@ -8,7 +8,7 @@ from PyQt5.QtCore import QPoint, Qt, QUrl, QTimer, QThread, pyqtSlot
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPixmap, QPolygon
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QFrame, QMessageBox
+    QWidget, QLabel, QPushButton, QFrame, QMessageBox, QVBoxLayout, QHBoxLayout
 )
 
 from analysis_form import SerialWorker
@@ -42,6 +42,8 @@ class ControlForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
         
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        
         self.operator_row = operator_row if operator_row else {}
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.csv_path = utils._csv_path(self.base_dir)
@@ -56,18 +58,21 @@ class ControlForm(QWidget):
         self.instr_form = None
 
         self.W = 1000
-        self.H = 450
+        self.TITLE_H = 30
+        self.LINE_H = 4
+        self.Y_OFFSET = self.TITLE_H + self.LINE_H
+        
+        self.ORIG_H = 450
+        self.H = self.ORIG_H + self.Y_OFFSET
         self.HEADER_H = 120
-        self.BODY_H = self.H - self.HEADER_H
+        self.BODY_H = self.ORIG_H - self.HEADER_H
         self.GRID_T = 4
-
-        self.fps_estimate = 30 
-        self.eyes_closed_start_time = None
-        self.head_tilted_start_time = None
 
         self.setFixedSize(self.W, self.H)
         self.setWindowTitle("НейроБодр - Мониторинг")
         self.setStyleSheet("background-color: #D9D9D9;")
+
+        self._drag_pos = QPoint()
 
         self.current_pulse_val = 0
         self.current_state = "NORMAL"
@@ -131,17 +136,37 @@ class ControlForm(QWidget):
             print(f"Ошибка чтения настроек пульса: {e}")
 
     def _build_ui(self):
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setGeometry(0, 0, self.W, self.TITLE_H)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setGeometry(0, self.TITLE_H, self.W, self.LINE_H)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+
         col_one_w = self.W // 3 
         video_w = self.W - col_one_w
 
         self._build_header(col_one_w)
 
         info_frame = QFrame(self)
-        info_frame.setGeometry(0, self.HEADER_H, col_one_w, self.BODY_H)
+        info_frame.setGeometry(0, self.HEADER_H + self.Y_OFFSET, col_one_w, self.BODY_H)
         self._build_left_info_panel(info_frame, col_one_w)
 
         video_frame = QFrame(self)
-        video_frame.setGeometry(col_one_w, self.HEADER_H, video_w, self.BODY_H)
+        video_frame.setGeometry(col_one_w, self.HEADER_H + self.Y_OFFSET, video_w, self.BODY_H)
         video_frame.setStyleSheet("background-color: #2b2b2b;")
         self._build_video_area(video_frame, video_w, self.BODY_H)
 
@@ -181,7 +206,7 @@ class ControlForm(QWidget):
 
     def _build_header(self, col_one_w):
         menu_frame = QFrame(self)
-        menu_frame.setGeometry(0, 0, col_one_w, self.HEADER_H)
+        menu_frame.setGeometry(0, self.Y_OFFSET, col_one_w, self.HEADER_H)
         
         lbl_menu = QLabel("Меню управления", menu_frame)
         lbl_menu.setGeometry(0, 15, col_one_w, 30)
@@ -213,7 +238,7 @@ class ControlForm(QWidget):
         self.btn_control.setStyleSheet(green_style)
 
         logo_frame = QFrame(self)
-        logo_frame.setGeometry(col_one_w, 0, col_one_w, self.HEADER_H)
+        logo_frame.setGeometry(col_one_w, self.Y_OFFSET, col_one_w, self.HEADER_H)
         logo_frame.setStyleSheet("background: #44CC29; border: none;")
         
         lbl_logo = QLabel("НейроБодр", logo_frame)
@@ -232,7 +257,7 @@ class ControlForm(QWidget):
 
         real_col3_w = self.W - (col_one_w * 2)
         id_frame = QFrame(self)
-        id_frame.setGeometry(col_one_w * 2, 0, real_col3_w, self.HEADER_H)
+        id_frame.setGeometry(col_one_w * 2, self.Y_OFFSET, real_col3_w, self.HEADER_H)
         
         lbl_id_title = QLabel("Идентификация", id_frame)
         lbl_id_title.setGeometry(0, 5, real_col3_w, 35)
@@ -447,15 +472,15 @@ class ControlForm(QWidget):
 
     def _draw_grid(self, col_w):
         sep_h = QFrame(self)
-        sep_h.setGeometry(0, self.HEADER_H, self.W, self.GRID_T)
+        sep_h.setGeometry(0, self.HEADER_H + self.Y_OFFSET, self.W, self.GRID_T)
         sep_h.setStyleSheet("background-color: white;")
 
         sep_v1 = QFrame(self)
-        sep_v1.setGeometry(col_w - self.GRID_T//2, 0, self.GRID_T, self.H)
+        sep_v1.setGeometry(col_w - self.GRID_T//2, self.Y_OFFSET, self.GRID_T, self.H - self.Y_OFFSET)
         sep_v1.setStyleSheet("background-color: white;")
 
         sep_v2 = QFrame(self)
-        sep_v2.setGeometry(col_w * 2 - self.GRID_T//2, 0, self.GRID_T, self.HEADER_H)
+        sep_v2.setGeometry(col_w * 2 - self.GRID_T//2, self.Y_OFFSET, self.GRID_T, self.HEADER_H)
         sep_v2.setStyleSheet("background-color: white;")
 
 
@@ -559,16 +584,6 @@ class ControlForm(QWidget):
         self.lbl_term_text.setText(term_txt)
 
     def _update_ui_state(self):
-        common_border = "border: 2px solid #0000FF;"
-        
-        st_green_on = f"background-color: #07D40B; {common_border}"
-        st_yellow_on = f"background-color: #FFFC00; {common_border}"
-        st_red_on = f"background-color: #D0021B; {common_border}"
-
-        st_green_off = f"background-color: #D0CECF; {common_border}"
-        st_yellow_off = f"background-color: #D0CECF; {common_border}"
-        st_red_off = f"background-color: #D0CECF; {common_border}"
-
         self.player_warning.stop()
         self.player_alarm.stop()
         
@@ -683,15 +698,17 @@ class ControlForm(QWidget):
     def closeEvent(self, event):
         self._update_csv_log()
 
-        self.worker_pulse.stop()
-        self.thread_pulse.quit()
-        self.thread_pulse.wait()
+        if hasattr(self, 'worker_pulse'):
+            self.worker_pulse.stop()
+        if hasattr(self, 'thread_pulse'):
+            self.thread_pulse.quit()
+            self.thread_pulse.wait()
 
         self.timer_main.stop()
         self.timer_cam.stop()
         self.timer_video.stop()
 
-        if self.cap.isOpened():
+        if hasattr(self, 'cap') and self.cap.isOpened():
             self.cap.release()
 
         if self.video_cap is not None:

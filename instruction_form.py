@@ -1,7 +1,7 @@
 import os
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QPixmap, QPainter, QBrush, QColor, QPolygon
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
+from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame, QVBoxLayout, QHBoxLayout
 
 class ShapeWidget(QWidget):
     def __init__(self, shape_type, color, parent=None):
@@ -26,6 +26,7 @@ class ShapeWidget(QWidget):
 class InstructionForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
 
         self.operator_row = operator_row if operator_row else {}
         self.analysis_form = None
@@ -38,19 +39,56 @@ class InstructionForm(QWidget):
         self.SECTION_H = 44
         self.GRID_T = 4
 
-        self.setFixedSize(self.W, self.H)
+        self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Инструкция и подключение")
         self.setStyleSheet("background-color: #D9D9D9;")
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 5, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(45, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                color: #FF0000; 
+                background: transparent; 
+                border: none; 
+                font-size: 36px; 
+                font-weight: bold;
+            }
+        """)
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        self.content_container = QWidget(self)
+        self.content_container.setFixedSize(self.W, self.H)
+        main_layout.addWidget(self.content_container)
 
         self._build_ui()
 
     def _build_ui(self):
         col_one_w = self.W // 3
-
         left_body_w = col_one_w * 2
         right_body_w = self.W - left_body_w
 
-        menu_frame = QFrame(self)
+        menu_frame = QFrame(self.content_container)
         menu_frame.setGeometry(0, 0, col_one_w, self.HEADER_H)
         menu_frame.setStyleSheet("background: #D9D9D9; border: none;")
 
@@ -80,7 +118,7 @@ class InstructionForm(QWidget):
         self.btn_control.setStyleSheet(purple_style)
         self.btn_control.clicked.connect(self._open_control)
 
-        logo_frame = QFrame(self)
+        logo_frame = QFrame(self.content_container)
         logo_frame.setGeometry(col_one_w, 0, col_one_w, self.HEADER_H)
         logo_frame.setStyleSheet("background: #44CC29; border: none;")
 
@@ -100,7 +138,7 @@ class InstructionForm(QWidget):
         lbl_desc.setStyleSheet("color: white;")
         lbl_desc.setFont(QFont("Times New Roman", 14))
 
-        id_frame = QFrame(self)
+        id_frame = QFrame(self.content_container)
         id_frame.setGeometry(col_one_w * 2, 0, right_body_w, self.HEADER_H)
         id_frame.setStyleSheet("background: #D9D9D9; border: none;")
 
@@ -122,7 +160,7 @@ class InstructionForm(QWidget):
         self.lbl_op_name.setFont(QFont("Times New Roman", 16, QFont.Normal)) 
         self.lbl_op_name.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        instr_header = QFrame(self)
+        instr_header = QFrame(self.content_container)
         instr_header.setGeometry(0, self.HEADER_H, left_body_w, self.SECTION_H)
         instr_header.setStyleSheet("background-color: #D9D9D9;")
 
@@ -131,10 +169,11 @@ class InstructionForm(QWidget):
         lbl_instr_h.setAlignment(Qt.AlignCenter)
         lbl_instr_h.setFont(QFont("Times New Roman", 14, QFont.Normal))
 
-        instr_body = QFrame(self)
+        instr_body = QFrame(self.content_container)
         instr_body.setGeometry(0, self.HEADER_H + self.SECTION_H, left_body_w, self.BODY_H - self.SECTION_H)
         self._build_instruction_content(instr_body, left_body_w)
-        conn_header = QFrame(self)
+
+        conn_header = QFrame(self.content_container)
         conn_header.setGeometry(left_body_w, self.HEADER_H, right_body_w, self.SECTION_H)
 
         lbl_conn_h = QLabel("Вид подключения", conn_header)
@@ -142,9 +181,10 @@ class InstructionForm(QWidget):
         lbl_conn_h.setAlignment(Qt.AlignCenter)
         lbl_conn_h.setFont(QFont("Times New Roman", 14, QFont.Normal))
 
-        conn_body = QFrame(self)
+        conn_body = QFrame(self.content_container)
         conn_body.setGeometry(left_body_w, self.HEADER_H + self.SECTION_H, right_body_w, self.BODY_H - self.SECTION_H)
         self._build_connection_content(conn_body, right_body_w)
+        
         self._draw_grid(col_one_w, left_body_w)
 
     def _build_instruction_content(self, parent, w):
@@ -185,10 +225,12 @@ class InstructionForm(QWidget):
             pixmap = QPixmap(os.path.join(base_dir, "assets", img))
             box.setPixmap(pixmap.scaled(block_w, block_h, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             box.setAlignment(Qt.AlignCenter)
+            
         lbl_hint = QLabel("Наклеить электроды как показано\nна рисунке и подключить контакты", parent)
         lbl_hint.setGeometry(side_margin, y_pos + block_h + 15, w - (side_margin * 2), 60)
         lbl_hint.setWordWrap(True)
         lbl_hint.setFont(QFont("Times New Roman", 11))
+        
         btn_next = QPushButton("Далее", parent)
         btn_next.setGeometry(w - 120 - side_margin, self.BODY_H - self.SECTION_H - 50, 110, 36)
         btn_next.setCursor(Qt.PointingHandCursor)
@@ -197,19 +239,30 @@ class InstructionForm(QWidget):
 
     def _draw_grid(self, col_w, left_body_w):
         for x in [col_w, col_w * 2]:
-            sep = QFrame(self)
+            sep = QFrame(self.content_container)
             sep.setGeometry(x - self.GRID_T // 2, 0, self.GRID_T, self.HEADER_H)
             sep.setStyleSheet("background-color: #FFFFFF; border: none;")
-        sep_h1 = QFrame(self); sep_h1.setGeometry(0, self.HEADER_H, self.W, self.GRID_T); sep_h1.setStyleSheet("background-color: #FFFFFF; border: none;")
-        sep_h2 = QFrame(self); sep_h2.setGeometry(0, self.HEADER_H + self.SECTION_H, self.W, self.GRID_T); sep_h2.setStyleSheet("background-color: #FFFFFF; border: none;")
-        sep_v = QFrame(self); sep_v.setGeometry(left_body_w - self.GRID_T // 2, self.HEADER_H, self.GRID_T, self.BODY_H); sep_v.setStyleSheet("background-color: #FFFFFF; border: none;")
+            
+        sep_h1 = QFrame(self.content_container)
+        sep_h1.setGeometry(0, self.HEADER_H, self.W, self.GRID_T)
+        sep_h1.setStyleSheet("background-color: #FFFFFF; border: none;")
+        
+        sep_h2 = QFrame(self.content_container)
+        sep_h2.setGeometry(0, self.HEADER_H + self.SECTION_H, self.W, self.GRID_T)
+        sep_h2.setStyleSheet("background-color: #FFFFFF; border: none;")
+        
+        sep_v = QFrame(self.content_container)
+        sep_v.setGeometry(left_body_w - self.GRID_T // 2, self.HEADER_H, self.GRID_T, self.BODY_H)
+        sep_v.setStyleSheet("background-color: #FFFFFF; border: none;")
 
     def _open_control(self):
         from control_form import ControlForm 
         if self.control_form is None: self.control_form = ControlForm(self.operator_row)
-        self.control_form.show(); self.hide()
+        self.control_form.show()
+        self.hide()
 
     def _open_analysis(self):
         from analysis_form import AnalysisForm 
         if self.analysis_form is None: self.analysis_form = AnalysisForm(self.operator_row)
-        self.analysis_form.show(); self.hide()
+        self.analysis_form.show()
+        self.hide()

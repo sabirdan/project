@@ -2,14 +2,12 @@ import os
 import csv
 import time
 import serial
+import collections
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QObject
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QFrame, QLineEdit, QMessageBox
+    QWidget, QLabel, QPushButton, QFrame, QLineEdit, QMessageBox, QVBoxLayout, QHBoxLayout
 )
-
-import collections
-
 
 class SerialWorker(QObject):
     data_received = pyqtSignal(str, str, str)
@@ -39,10 +37,8 @@ class SerialWorker(QObject):
                     line = self.ser.readline().decode('utf-8', errors='ignore').strip()
                     if line.isdigit():
                         val = int(line)
-                        
                         self.raw_buffer.append(val)
                         filtered_val = int(sum(self.raw_buffer) / len(self.raw_buffer))
-                        
                         current_time = time.time()
                         
                         if not self.is_peak:
@@ -53,7 +49,6 @@ class SerialWorker(QObject):
                                     if 40 < bpm < 180:
                                         beats.append(bpm)
                                         if len(beats) > 8: beats.pop(0)
-                                    
                                     last_peak_time = current_time
                                     self.is_peak = True
                         else:
@@ -63,7 +58,6 @@ class SerialWorker(QObject):
                         avg_bpm = int(sum(beats) / len(beats)) if beats else 0
                         pulse_str = str(avg_bpm) if avg_bpm > 0 else "--"
                         status_pulse = "OK" if avg_bpm > 0 else "Поиск..."
-                        
                         self.data_received.emit("OK", status_pulse, pulse_str)
                 else:
                     time.sleep(0.005)
@@ -75,16 +69,15 @@ class SerialWorker(QObject):
         if self.ser and self.ser.is_open:
             self.ser.close()
 
-
 class AnalysisForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
         
         self.operator_row = operator_row if operator_row else {}
         self.csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'operators_db.csv'))
 
         self.instr_window = None
-        self.control_window = None
         self.control_window = None
 
         self.W = 1000
@@ -94,9 +87,39 @@ class AnalysisForm(QWidget):
         self.SECTION_H = 44 
         self.GRID_T = 4     
 
-        self.setFixedSize(self.W, self.H)
+        self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Анализ оператора")
         self.setStyleSheet("background-color: #D9D9D9;")
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 5, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(45, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        self.content_container = QWidget(self)
+        self.content_container.setFixedSize(self.W, self.H)
+        main_layout.addWidget(self.content_container)
 
         self._build_ui()
         self._fill_data()
@@ -123,7 +146,7 @@ class AnalysisForm(QWidget):
         left_body_w = col_one_w * 2
         right_body_w = self.W - left_body_w
 
-        menu_frame = QFrame(self)
+        menu_frame = QFrame(self.content_container)
         menu_frame.setGeometry(0, 0, col_one_w, self.HEADER_H)
         menu_frame.setStyleSheet("background: #D9D9D9; border: none;")
         
@@ -132,9 +155,7 @@ class AnalysisForm(QWidget):
         lbl_menu.setAlignment(Qt.AlignCenter)
         lbl_menu.setFont(QFont("Times New Roman", 18))
 
-        spacing = 8
-        btn_h = 36
-        btn_y = 65
+        spacing, btn_h, btn_y = 8, 36, 65
         total_btn_w = col_one_w - (spacing * 2)
         btn_w = total_btn_w // 3
 
@@ -156,7 +177,7 @@ class AnalysisForm(QWidget):
         self.btn_control.setStyleSheet(purple_style)
         self.btn_control.clicked.connect(self._go_control)
 
-        logo_frame = QFrame(self)
+        logo_frame = QFrame(self.content_container)
         logo_frame.setGeometry(col_one_w, 0, col_one_w, self.HEADER_H)
         logo_frame.setStyleSheet("background: #44CC29; border: none;")
         
@@ -176,7 +197,7 @@ class AnalysisForm(QWidget):
         lbl_desc.setStyleSheet("color: white;")
         lbl_desc.setFont(QFont("Times New Roman", 14))
 
-        id_frame = QFrame(self)
+        id_frame = QFrame(self.content_container)
         id_frame.setGeometry(col_one_w * 2, 0, right_body_w, self.HEADER_H)
         id_frame.setStyleSheet("background: #D9D9D9; border: none;")
         
@@ -198,7 +219,7 @@ class AnalysisForm(QWidget):
         self.lbl_op_name.setFont(QFont("Times New Roman", 16))
         self.lbl_op_name.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        analys_header = QFrame(self)
+        analys_header = QFrame(self.content_container)
         analys_header.setGeometry(0, self.HEADER_H, left_body_w, self.SECTION_H)
         analys_header.setStyleSheet("background: #D9D9D9; border: none;")
         
@@ -207,12 +228,12 @@ class AnalysisForm(QWidget):
         lbl_analys_h.setAlignment(Qt.AlignCenter)
         lbl_analys_h.setFont(QFont("Times New Roman", 14))
 
-        analys_body = QFrame(self)
+        analys_body = QFrame(self.content_container)
         analys_body.setGeometry(0, self.HEADER_H + self.SECTION_H, left_body_w, self.BODY_H - self.SECTION_H)
         analys_body.setStyleSheet("background: transparent;")
         self._build_analysis_content(analys_body, left_body_w)
 
-        conn_header = QFrame(self)
+        conn_header = QFrame(self.content_container)
         conn_header.setGeometry(left_body_w, self.HEADER_H, right_body_w, self.SECTION_H)
         conn_header.setStyleSheet("background: #D9D9D9; border: none;")
         
@@ -221,7 +242,7 @@ class AnalysisForm(QWidget):
         lbl_conn_h.setAlignment(Qt.AlignCenter)
         lbl_conn_h.setFont(QFont("Times New Roman", 14))
 
-        conn_body = QFrame(self)
+        conn_body = QFrame(self.content_container)
         conn_body.setGeometry(left_body_w, self.HEADER_H + self.SECTION_H, right_body_w, self.BODY_H - self.SECTION_H)
         conn_body.setStyleSheet("background: transparent;")
         self._build_connection_content(conn_body, right_body_w)
@@ -229,14 +250,8 @@ class AnalysisForm(QWidget):
         self._draw_grid(col_one_w, left_body_w)
 
     def _build_analysis_content(self, parent, w):
-        content_margin = 20  
-        input_y = 15
-        input_h = 35
-        input_w = 200
-        gap_v = 38           
-        
+        content_margin, input_y, input_h, input_w, gap_v = 20, 15, 35, 200, 38
         edit_x = content_margin + 285 
-        
         input_font = QFont("Times New Roman", 14)
 
         lbl_p1 = QLabel("Укажите порог вашего пульса", parent)
@@ -259,12 +274,7 @@ class AnalysisForm(QWidget):
 
         btn_save = QPushButton("Записать", parent)
         btn_save.setGeometry(edit_x + input_w + 20, input_y + 15, 110, 40) 
-        btn_save.setStyleSheet("""
-            QPushButton { 
-                background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;
-            } 
-            QPushButton:hover { background: #44CC29; }
-        """)
+        btn_save.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px; } QPushButton:hover { background: #44CC29; }")
         btn_save.clicked.connect(self._save_to_csv)
 
         line_sep = QFrame(parent)
@@ -287,10 +297,7 @@ class AnalysisForm(QWidget):
         self._update_terminal_ui("WAIT", "WAIT", "--")
 
     def _build_connection_content(self, parent, w):
-        side_margin = 25
-        gap = 20
-        block_h = 150
-        y_pos = 20
+        side_margin, gap, block_h, y_pos = 25, 20, 150, 20
         block_w = (w - (side_margin * 2) - gap) // 2 
 
         box1 = QLabel("1 пример", parent)
@@ -310,119 +317,86 @@ class AnalysisForm(QWidget):
 
         self.btn_next = QPushButton("Далее", parent)
         self.btn_next.setGeometry(w - 120 - side_margin, 230, 110, 36)
-        self.btn_next.setStyleSheet("""
-            QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;}
-            QPushButton:hover { background: #44CC29; }
-        """)
+        self.btn_next.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;} QPushButton:hover { background: #44CC29; }")
         self.btn_next.clicked.connect(self._go_control)
 
     def _draw_grid(self, col_w, left_body_w):
         for x in [col_w, col_w * 2]:
-            sep = QFrame(self)
+            sep = QFrame(self.content_container)
             sep.setGeometry(x - self.GRID_T // 2, 0, self.GRID_T, self.HEADER_H)
             sep.setStyleSheet("background-color: white;")
         
-        sep_h1 = QFrame(self)
+        sep_h1 = QFrame(self.content_container)
         sep_h1.setGeometry(0, self.HEADER_H, self.W, self.GRID_T)
         sep_h1.setStyleSheet("background-color: white;")
 
-        sep_h2 = QFrame(self)
+        sep_h2 = QFrame(self.content_container)
         sep_h2.setGeometry(0, self.HEADER_H + self.SECTION_H, self.W, self.GRID_T)
         sep_h2.setStyleSheet("background-color: white;")
 
-        sep_v = QFrame(self)
+        sep_v = QFrame(self.content_container)
         sep_v.setGeometry(left_body_w - self.GRID_T // 2, self.HEADER_H, self.GRID_T, self.BODY_H)
         sep_v.setStyleSheet("background-color: white;")
 
     def _update_terminal_ui(self, status_conn, status_pulse, current_pulse):
         txt_conn = "OK" if status_conn == "OK" else "FAIL"
-        
         lines = [
             f"Проверка сигнала . . . . . . . . . . . . . . . {txt_conn}",
             f"Проверка пульса . . . . . . . . . . . . . . . . {status_pulse}",
             f"Пульс . . . . . . . . . . . . . . . . . . . . . . . . . . . {current_pulse}"
         ]
-        
         if txt_conn == "OK" and status_pulse == "OK" and current_pulse not in ["--", "ERR"]:
             lines.append("Для перехода в режим управления нажмите далее")
-            
-        term_text = "\n".join(lines)
-        self.lbl_term.setText(term_text)
+        self.lbl_term.setText("\n".join(lines))
 
     def _save_to_csv(self):
-        th_val = self.edit_threshold.text().strip()
-        norm_val = self.edit_normal.text().strip()
-
+        th_val, norm_val = self.edit_threshold.text().strip(), self.edit_normal.text().strip()
         if not th_val.isdigit() or not norm_val.isdigit():
             QMessageBox.warning(self, "Ошибка", "Введите числовые значения пульса.")
             return
 
         target_id = str(self.operator_row.get("id"))
-        updated_rows = []
-        header = []
-        
-        new_columns = ["pulse_threshold_critical", "pulse_normal", "current_pulse"]
+        updated_rows, header, new_columns = [], [], ["pulse_threshold_critical", "pulse_normal", "current_pulse"]
 
         try:
             with open(self.csv_path, "r", newline="", encoding="utf-8") as f:
                 reader = csv.reader(f)
                 header = next(reader)
-                
                 for col in new_columns:
-                    if col not in header:
-                        header.append(col)
-                
+                    if col not in header: header.append(col)
                 for row in reader:
                     row_data = dict(zip(header[:len(row)], row))
-                    
                     if row_data.get("id") == target_id:
                         row_data["pulse_threshold_critical"] = th_val
                         row_data["pulse_normal"] = norm_val
                         row_data["current_pulse"] = "0"
-                        
                         self.operator_row.update(row_data)
-                    
-                    new_row = [row_data.get(h, "") for h in header]
-                    updated_rows.append(new_row)
+                    updated_rows.append([row_data.get(h, "") for h in header])
 
             with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
                 writer.writerows(updated_rows)
-
             QMessageBox.information(self, "Успех", "Данные пульса сохранены.")
-            
         except Exception as e:
             QMessageBox.critical(self, "Ошибка CSV", f"Не удалось записать файл:\n{e}")
 
     def _go_instruction(self):
-        if self.worker:
-            self.worker.stop()
-        if self.thread:
-            self.thread.quit()
-            self.thread.wait()
-
+        self.worker.stop()
+        self.thread.quit()
+        self.thread.wait()
         from instruction_form import InstructionForm
-
-        if not self.instr_window:
-            self.instr_window = InstructionForm(self.operator_row)
+        if not self.instr_window: self.instr_window = InstructionForm(self.operator_row)
         self.instr_window.show()
-        
         self.close()
         
     def _go_control(self):
-        if self.worker:
-            self.worker.stop()
-        if self.thread:
-            self.thread.quit()
-            self.thread.wait()
-
+        self.worker.stop()
+        self.thread.quit()
+        self.thread.wait()
         from control_form import ControlForm
-        if not self.control_window:
-            self.control_window = ControlForm(self.operator_row)
-        
+        if not self.control_window: self.control_window = ControlForm(self.operator_row)
         self.control_window.show()
-        
         self.close()
 
     def closeEvent(self, event):

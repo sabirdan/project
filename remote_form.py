@@ -40,13 +40,44 @@ class ShapeWidget(QWidget):
 class AuthScreen(QWidget):
     def __init__(self, remote_form):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.remote_form = remote_form
 
-        self.setFixedSize(400, 170)
+        self.setFixedSize(400, 204)
         self.setWindowTitle("Авторизация")
         self.setStyleSheet("background-color: #D9D9D9;")
 
-        root = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+        
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        content_container = QWidget(self)
+        main_layout.addWidget(content_container)
+
+        root = QVBoxLayout(content_container)
         root.setContentsMargins(10, 28, 28, 22)
         root.setSpacing(0)
 
@@ -127,21 +158,24 @@ class AuthScreen(QWidget):
         self_rect = self.frameGeometry()
         x = parent_rect.x() + (parent_rect.width() - self_rect.width()) // 2
         y = parent_rect.y() + (parent_rect.height() - self_rect.height()) // 2
-        self.move(x, y)
+        self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
 
 
 class RemoteForm(QWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self._old_pos = None
 
         self.W = 1000
         self.H = 450
+        self.FRAME_H = 34
         self.HEADER_H = 120
         self.BODY_H = self.H - self.HEADER_H
         self.SECTION_H = 44
         self.GRID_T = 4
 
-        self.setFixedSize(self.W, self.H)
+        self.setFixedSize(self.W, self.H + self.FRAME_H)
         self.setWindowTitle("Удаленный мониторинг")
         self.setStyleSheet("background-color: #D9D9D9;")
 
@@ -161,6 +195,19 @@ class RemoteForm(QWidget):
         self._build_ui()
 
         self.auth_window = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and event.y() <= self.FRAME_H:
+            self._old_pos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        if self._old_pos is not None:
+            delta = QPoint(event.globalPos() - self._old_pos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self._old_pos = event.globalPos()
+
+    def mouseReleaseEvent(self, event):
+        self._old_pos = None
 
     def _setup_audio(self):
         warn_path = os.path.join(self.base_dir, "warning.wav")
@@ -364,8 +411,28 @@ class RemoteForm(QWidget):
         self.auth_window.show()
 
     def _build_ui(self):
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setGeometry(0, 0, self.W, 30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setGeometry(0, 30, self.W, 4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+
         header = QFrame(self)
-        header.setGeometry(0, 0, self.W, self.HEADER_H)
+        header.setGeometry(0, self.FRAME_H, self.W, self.HEADER_H)
         header.setStyleSheet("background-color: #44CC29; border: none;")
 
         t1 = QLabel("НейроБодр", header)
@@ -385,12 +452,12 @@ class RemoteForm(QWidget):
         t2.setFont(QFont("Times New Roman", 16, QFont.Normal))
 
         header_bottom = QFrame(self)
-        header_bottom.setGeometry(0, self.HEADER_H - self.GRID_T, self.W, self.GRID_T)
+        header_bottom.setGeometry(0, self.FRAME_H + self.HEADER_H - self.GRID_T, self.W, self.GRID_T)
         header_bottom.setStyleSheet("background-color: #FFFFFF; border: none;")
         header_bottom.raise_()
 
         body = QFrame(self)
-        body.setGeometry(0, self.HEADER_H, self.W, self.BODY_H)
+        body.setGeometry(0, self.FRAME_H + self.HEADER_H, self.W, self.BODY_H)
         body.setStyleSheet("background-color: #D9D9D9; border: none;")
 
         col_w = self.W // 3
@@ -417,7 +484,7 @@ class RemoteForm(QWidget):
         self.mid_info = QLabel("", self.mid)
         self.mid_info.setGeometry(20, self.SECTION_H + 20, col_w - 40, 150)
         self.mid_info.setStyleSheet("color: white; background: transparent;")
-        self.mid_info.setFont(QFont("Consolas", 11, QFont.Normal))  # Шрифт как в терминале
+        self.mid_info.setFont(QFont("Consolas", 11, QFont.Normal))
         self.mid_info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.mid_info.setWordWrap(True)
 
@@ -530,7 +597,10 @@ class RemoteForm(QWidget):
 
         default_img = os.path.join(self.base_dir, "assets", "user.png")
         pix = QPixmap(default_img)
-        self.photo.setPixmap(pix.scaled(self.photo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        if pix.isNull():
+             self.photo.setText("Нет фото")
+        else:
+             self.photo.setPixmap(pix.scaled(self.photo.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _draw_shapes(self, parent):
         shape_s = 80

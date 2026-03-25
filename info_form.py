@@ -4,7 +4,7 @@ import cv2
 from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QFrame, QMessageBox
+    QWidget, QLabel, QPushButton, QFrame, QMessageBox, QVBoxLayout, QHBoxLayout
 )
 
 from instruction_form import InstructionForm
@@ -37,6 +37,7 @@ class InfoForm(QWidget):
 
     def __init__(self, start_screen, auth_screen, operator_row: dict, csv_file: str, ops_dir: str):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.start_screen = start_screen
         self.auth_screen = auth_screen
         self.csv_file = csv_file
@@ -81,9 +82,47 @@ class InfoForm(QWidget):
         self.SECTION_H = 44
         self.GRID_T = 4
 
-        self.setFixedSize(self.W, self.H)
+        self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Информация оператора")
         self.setStyleSheet("background-color: #D9D9D9;")
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 5, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(45, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                color: #FF0000; 
+                background: transparent; 
+                border: none; 
+                font-size: 36px; 
+                font-weight: bold;
+            }
+        """)
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        self.content_container = QWidget(self)
+        self.content_container.setFixedSize(self.W, self.H)
+        main_layout.addWidget(self.content_container)
 
         self._build_ui()
         self._reset_state()
@@ -118,7 +157,7 @@ class InfoForm(QWidget):
             self.presence_timer.stop()
 
     def _build_ui(self):
-        header = QFrame(self)
+        header = QFrame(self.content_container)
         header.setGeometry(0, 0, self.W, self.HEADER_H)
         header.setStyleSheet("background-color: #44CC29; border: none;")
 
@@ -138,12 +177,12 @@ class InfoForm(QWidget):
         t2.setStyleSheet("color: white; background: transparent;")
         t2.setFont(QFont("Times New Roman", 16, QFont.Normal))
 
-        header_bottom = QFrame(self)
+        header_bottom = QFrame(self.content_container)
         header_bottom.setGeometry(0, self.HEADER_H - self.GRID_T, self.W, self.GRID_T)
         header_bottom.setStyleSheet("background-color: #FFFFFF; border: none;")
         header_bottom.raise_()
 
-        body = QFrame(self)
+        body = QFrame(self.content_container)
         body.setGeometry(0, self.HEADER_H, self.W, self.BODY_H)
         body.setStyleSheet("background-color: #D9D9D9; border: none;")
 
@@ -330,7 +369,6 @@ class InfoForm(QWidget):
             return self._ref_enc_cache
         
         ref_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.op_id)}.jpg")
-        
         ref_img = _opencv_imread_unicode(ref_path)
         
         if ref_img is None:

@@ -11,12 +11,11 @@ from utils import (
 )
 from registration_form import RegistrationForm
 from auth_screen import AuthScreen
-from remote_form import RemoteForm, AuthScreen as RemoteAuth
-
 
 class StartScreen(QWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.software_start_time = _now_time_str()
 
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,11 +26,41 @@ class StartScreen(QWidget):
         self.reg_form = None
         self.auth_form = None
 
-        self.setFixedSize(400, 170)
+        self.setFixedSize(400, 204)
         self.setWindowTitle("Старт")
         self.setStyleSheet("background-color: #D9D9D9;")
 
-        root = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        self.top_grey_area = QWidget(self)
+        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
+        
+        top_layout = QHBoxLayout(self.top_grey_area)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.clicked.connect(self.close)
+        top_layout.addWidget(self.btn_close)
+        
+        main_layout.addWidget(self.top_grey_area)
+
+        self.top_white_line = QWidget(self)
+        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
+        main_layout.addWidget(self.top_white_line)
+
+        content_container = QWidget(self)
+        main_layout.addWidget(content_container)
+
+        root = QVBoxLayout(content_container)
         root.setContentsMargins(28, 24, 28, 22)
         root.setSpacing(0)
 
@@ -76,7 +105,6 @@ class StartScreen(QWidget):
         """)
         return b
 
-
     def open_registration(self):
         if self.reg_form is None:
             self.reg_form = RegistrationForm(
@@ -85,9 +113,7 @@ class StartScreen(QWidget):
                 ops_dir=self.ops_dir,
                 software_start_time=self.software_start_time
             )
-        
         self.reg_form.reset_form()
-        
         self.reg_form.show()
         self.hide()
 
@@ -114,7 +140,6 @@ class StartScreen(QWidget):
         except Exception:
             pass
         super().closeEvent(event)
-
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
