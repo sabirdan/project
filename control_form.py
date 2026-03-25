@@ -58,7 +58,11 @@ class ControlForm(QWidget):
         self.H = 450
         self.HEADER_H = 120
         self.BODY_H = self.H - self.HEADER_H
-        self.GRID_T = 4     
+        self.GRID_T = 4
+
+        self.fps_estimate = 30 
+        self.frames_eyes_closed = 0
+        self.frames_head_tilted = 0
 
         self.setFixedSize(self.W, self.H)
         self.setWindowTitle("НейроБодр - Мониторинг")
@@ -478,6 +482,7 @@ class ControlForm(QWidget):
 
         if len(faces) > 0:
             detected_face = True
+            self.frames_head_tilted = 0
             (x, y, w, h) = sorted(faces, key=lambda f: f[2]*f[3], reverse=True)[0]
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
             roi_gray = gray[y:y+h, x:x+w]
@@ -489,34 +494,38 @@ class ControlForm(QWidget):
                     cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (255, 0, 0), 2)
 
         if detected_face and not detected_eyes:
-            self.consecutive_frames_closed += 1
+            self.frames_eyes_closed += 1
         elif not detected_face:
-            self.consecutive_frames_closed += 1
+            self.frames_head_tilted += 1
+            self.frames_eyes_closed += 1
         else:
-            self.consecutive_frames_closed = 0
+            self.frames_eyes_closed = 0
+            self.frames_head_tilted = 0
 
         utils._draw_to_label_with_dpr(frame, self.lbl_cam_feed)
         self._check_status()
 
     def _check_status(self):
-        seconds_closed = self.consecutive_frames_closed / self.fps_estimate
+        seconds_closed = self.frames_eyes_closed / self.fps_estimate
+        seconds_tilted = self.frames_head_tilted / self.fps_estimate
         p = self.current_pulse_val
         
+        norm_min = self.pulse_norm_min
+        norm_max = self.pulse_norm_max
+        crit = self.pulse_crit_threshold
+
+        is_pulse_red = (p > 0 and (p <= norm_min * 0.7 or p >= crit))
+        is_eyes_red = (seconds_tilted > 7.0 and seconds_closed > 7.0)
+
+        is_pulse_yellow = (p > 0 and (p <= norm_min * 0.8 or (p >= norm_max * 1.2 and p < crit)))
+        is_eyes_yellow = (seconds_closed > 4.0)
+        is_head_yellow = (seconds_tilted > 4.0)
+
         new_state = "NORMAL"
-
-        is_pulse_crit = (p > 0 and (p <= 42 or p >= self.pulse_crit_threshold))
-        is_eyes_crit = (seconds_closed > 4.0)
-
-        if is_pulse_crit or is_eyes_crit:
+        if is_pulse_red or is_eyes_red:
             new_state = "CRITICAL"
-        else:
-            is_pulse_warn = (p > 0 and (p < 50 or p > 90))
-            is_eyes_warn = (seconds_closed > 3.0)
-            
-            if is_pulse_warn or is_eyes_warn:
-                new_state = "WARNING"
-            else:
-                new_state = "NORMAL"
+        elif is_pulse_yellow or is_eyes_yellow or is_head_yellow:
+            new_state = "WARNING"
 
         if new_state != self.current_state:
             self.current_state = new_state
@@ -590,18 +599,17 @@ class ControlForm(QWidget):
 
         if self.remaining_seconds > 0:
             self.remaining_seconds -= 1
-            
             hours = self.remaining_seconds // 3600
             minutes = (self.remaining_seconds % 3600) // 60
             seconds = self.remaining_seconds % 60
-            
             time_str = f"{hours:02d}:{minutes:02d}"
-            
             self.lbl_clock.setText(time_str)
         else:
             self.timer_main.stop()
             self.lbl_clock.setText("00:00")
             QMessageBox.information(self, "Конец", "Время вышло!")
+
+        self._update_csv_log()
 
     def _update_time_ui(self):
         self.lbl_dt_val.setText(utils._now_date_str() + " / " + utils._now_time_str())

@@ -11,6 +11,8 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtWidgets import QLabel
 
+CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+
 CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
@@ -36,12 +38,12 @@ def _now_time_str():
     return datetime.now().strftime("%H:%M:%S")
 
 def _ensure_dirs(base_dir: str):
-    ops_dir = os.path.join(base_dir, "operators")
+    ops_dir = os.path.join(CSV_DIRECTORY, "operators")
     os.makedirs(ops_dir, exist_ok=True)
     return ops_dir
 
-def _csv_path(base_dir: str):
-    return os.path.join(base_dir, "operators_db.csv")
+def _csv_path(base_dir: str = None):
+    return os.path.join(CSV_DIRECTORY, "operators_db.csv")
 
 def _ensure_csv(csv_file: str):
     if os.path.exists(csv_file):

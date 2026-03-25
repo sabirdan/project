@@ -2,19 +2,39 @@ import sys
 import os
 import csv
 import datetime
-from PyQt5.QtCore import Qt, QRegularExpression, QTimer, QUrl, QSize
+import utils
+from PyQt5.QtCore import QPoint, Qt, QRegularExpression, QTimer, QUrl, QSize
 from PyQt5.QtGui import (
-    QFont, QPixmap, QGuiApplication, QRegularExpressionValidator, QImage
+    QBrush, QColor, QFont, QPainter, QPixmap, QGuiApplication, QPolygon, QRegularExpressionValidator, QImage
 )
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QApplication, QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox
 )
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
+class ShapeWidget(QWidget):
+    def __init__(self, shape_type, color, parent=None):
+        super().__init__(parent)
+        self.shape_type = shape_type
+        self.color = color
+        self.setFixedSize(80, 80)
 
-def _get_csv_path():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_dir, "operators_db.csv")
+    def set_color(self, new_color):
+        self.color = new_color
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(self.color)))
+        if self.shape_type == "circle":
+            painter.drawEllipse(0, 0, self.width(), self.height())
+        elif self.shape_type == "triangle":
+            points = [QPoint(self.width() // 2, 0), QPoint(0, self.height()), QPoint(self.width(), self.height())]
+            painter.drawPolygon(QPolygon(points))
+        elif self.shape_type == "square":
+            painter.drawRect(0, 0, self.width(), self.height())
 
 
 class AuthScreen(QWidget):
@@ -78,7 +98,7 @@ class AuthScreen(QWidget):
         if not user_id:
             return
 
-        csv_path = _get_csv_path()
+        csv_path = utils._csv_path()
         if not os.path.exists(csv_path):
             QMessageBox.critical(self, "Ошибка", f"Файл {csv_path} не найден!")
             return
@@ -198,9 +218,10 @@ class RemoteForm(QWidget):
 
     def _update_monitor_data(self):
         current_pulse = 0
-        status_from_file = "NORMAL"
+        status_from_file = ""
+        drive_duration_str = "00:00:00"
 
-        csv_path = _get_csv_path()
+        csv_path = utils._csv_path()
         target_id = self.operator_data.get("id")
 
         if os.path.exists(csv_path) and target_id:
@@ -211,28 +232,34 @@ class RemoteForm(QWidget):
                         if row.get("id") == target_id:
                             p_str = row.get("current_pulse", "0")
                             current_pulse = int(p_str) if p_str.isdigit() else 0
-                            status_from_file = row.get("operator_status", "NORMAL")
+                            status_from_file = row.get("operator_status", "")
+                            drive_duration_str = row.get("drive_duration", "00:00:00")
                             break
             except Exception:
                 pass
 
+        if not status_from_file:
+            self.mid_info.setText("Ожидание данных...\nОператор еще не перешел в режим «Управление».")
+            self.lbl_drive.setText("Время в дороге: <b>--:--:--</b>")
+            self.lbl_left.setText("Оставшееся время: <b>--:--:--</b>")
+            self.lbl_status.setText("Состояние: <span style='color:gray'>ОЖИДАНИЕ</span>")
+            self.lbl_pulse_val.setText("--")
+            
+            st_off = "background-color: #D0CECF; border: 2px solid #0000FF;"
+            self.lbl_sq_green.setStyleSheet(st_off)
+            self.lbl_sq_yellow.setStyleSheet(st_off)
+            self.lbl_sq_red.setStyleSheet(st_off)
+            return
+
         self.current_status = status_from_file
 
         now = datetime.datetime.now()
-        date_str = now.strftime("%d.%m.%Y")
-        time_str = now.strftime("%H:%M:%S")
-        self.lbl_dt.setText(f"Дата/время: <b>{date_str} / {time_str}</b>")
+        self.lbl_dt.setText(f"Дата/время: <b>{now.strftime('%d.%m.%Y')} / {now.strftime('%H:%M:%S')}</b>")
 
-        delta = now - self.start_time
-        seconds_in_road = int(delta.total_seconds())
-        h = seconds_in_road // 3600
-        m = (seconds_in_road % 3600) // 60
-        s = seconds_in_road % 60
-        self.lbl_drive.setText(f"Время в дороге: <b>{h:02d}:{m:02d}:{s:02d}</b>")
+        self.lbl_drive.setText(f"Время в дороге: <b>{drive_duration_str}</b>")
 
-        total_work_seconds = 9 * 3600
-        remaining = total_work_seconds - seconds_in_road
-        if remaining < 0: remaining = 0
+        seconds_in_road = utils._parse_hms_to_seconds(drive_duration_str)
+        remaining = max(0, 9 * 3600 - seconds_in_road)
         rh = remaining // 3600
         rm = (remaining % 3600) // 60
         rs = remaining % 60
@@ -252,7 +279,7 @@ class RemoteForm(QWidget):
         st_green_on = f"background-color: #07D40B; {common_border}"
         st_yellow_on = f"background-color: #FFFC00; {common_border}"
         st_red_on = f"background-color: #D0021B; {common_border}"
-        st_off = f"background-color: #D0CECF; {common_border}"
+        st_off = "#D0CECF"
 
         if self.current_status == "NORMAL":
             self.player_warning.stop()
@@ -264,6 +291,10 @@ class RemoteForm(QWidget):
             self.lbl_sq_green.setStyleSheet(st_green_on)
             self.lbl_sq_yellow.setStyleSheet(st_off)
             self.lbl_sq_red.setStyleSheet(st_off)
+
+            self.lbl_sq_green.set_color("#7CE4D5")
+            self.lbl_sq_yellow.set_color(st_off)
+            self.lbl_sq_red.set_color(st_off)
 
         elif self.current_status == "WARNING":
             if self.player_warning.state() != QMediaPlayer.PlayingState:
@@ -277,6 +308,10 @@ class RemoteForm(QWidget):
             self.lbl_sq_yellow.setStyleSheet(st_yellow_on)
             self.lbl_sq_red.setStyleSheet(st_off)
 
+            self.lbl_sq_green.set_color(st_off)
+            self.lbl_sq_yellow.set_color("#F9D849")
+            self.lbl_sq_red.set_color(st_off)
+
         elif self.current_status == "CRITICAL":
             self.player_warning.stop()
             if self.player_alarm.state() != QMediaPlayer.PlayingState:
@@ -288,6 +323,10 @@ class RemoteForm(QWidget):
             self.lbl_sq_green.setStyleSheet(st_off)
             self.lbl_sq_yellow.setStyleSheet(st_off)
             self.lbl_sq_red.setStyleSheet(st_red_on)
+
+            self.lbl_sq_green.set_color(st_off)
+            self.lbl_sq_yellow.set_color(st_off)
+            self.lbl_sq_red.set_color("#D0021B")
 
     def _update_terminal_block(self, pulse):
         p_str = str(pulse) if pulse > 0 else "--"
@@ -306,6 +345,10 @@ class RemoteForm(QWidget):
         self.timer_monitor.stop()
         self.player_warning.stop()
         self.player_alarm.stop()
+
+        self.lbl_sq_green.set_color("white")
+        self.lbl_sq_yellow.set_color("white")
+        self.lbl_sq_red.set_color("white")
 
         self._refresh_left_info()
         self.mid_info.setText("")
@@ -492,33 +535,22 @@ class RemoteForm(QWidget):
     def _draw_shapes(self, parent):
         shape_s = 80
         gap = 10
-        common_style = "border: 2px solid #0000FF;"
-
         total_width = 3 * shape_s + 2 * gap
-        total_height = shape_s
-
+        
         parent_rect = parent.geometry()
-        parent_width = parent_rect.width()
-        parent_height = parent_rect.height()
-
-        center_x = parent_width // 2
-        center_y = parent_height // 2 + 20
-
+        center_x = parent_rect.width() // 2
+        center_y = parent_rect.height() // 2 + 20
         x_start = center_x - total_width // 2
-        y_start = center_y - total_height // 2
+        y_start = center_y - (shape_s // 2)
 
-        self.lbl_sq_green = QLabel(parent)
-        self.lbl_sq_green.setGeometry(x_start, y_start, shape_s, shape_s)
-        self.lbl_sq_green.setStyleSheet(f"background-color: white; {common_style}")
+        self.lbl_sq_green = ShapeWidget("circle", "white", parent)
+        self.lbl_sq_green.move(x_start, y_start)
 
-        self.lbl_sq_yellow = QLabel(parent)
-        self.lbl_sq_yellow.setGeometry(x_start + shape_s + gap, y_start, shape_s, shape_s)
-        self.lbl_sq_yellow.setStyleSheet(f"background-color: white; {common_style}")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "white", parent)
+        self.lbl_sq_yellow.move(x_start + shape_s + gap, y_start)
 
-        self.lbl_sq_red = QLabel(parent)
-        self.lbl_sq_red.setGeometry(x_start + 2 * (shape_s + gap), y_start, shape_s, shape_s)
-        self.lbl_sq_red.setStyleSheet(f"background-color: white; {common_style}")
-
+        self.lbl_sq_red = ShapeWidget("square", "white", parent)
+        self.lbl_sq_red.move(x_start + 2 * (shape_s + gap), y_start)
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)

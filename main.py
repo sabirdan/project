@@ -127,12 +127,4 @@ if __name__ == "__main__":
     w = StartScreen()
     w.show()
 
-    remote_win = RemoteForm()
-    remote_win.show()
-
-    remote_auth = RemoteAuth(remote_win)
-    remote_auth.center_on_parent(remote_win)
-    remote_auth.show()
-    remote_auth.raise_()
-
     sys.exit(app.exec_())
