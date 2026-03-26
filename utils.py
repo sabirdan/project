@@ -11,7 +11,8 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtWidgets import QLabel
 
-CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+# CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+CSV_DIRECTORY = r"C:\Users\user\Desktop"
 
 CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
@@ -32,7 +33,7 @@ def _safe_csv_cell(s: str) -> str:
     return s
 
 def _now_date_str():
-    return datetime.now().strftime("%d-%m-%Y")
+    return datetime.now().strftime("%d.%m.%Y")
 
 def _now_time_str():
     return datetime.now().strftime("%H:%M:%S")

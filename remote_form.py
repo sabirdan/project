@@ -41,9 +41,10 @@ class AuthScreen(QWidget):
     def __init__(self, remote_form):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowModality(Qt.ApplicationModal)
         self.remote_form = remote_form
 
-        self.setFixedSize(400, 204)
+        self.setFixedSize(310, 150)
         self.setWindowTitle("Авторизация")
         self.setStyleSheet("background-color: #D9D9D9;")
 
@@ -52,7 +53,7 @@ class AuthScreen(QWidget):
         main_layout.setSpacing(0)
 
         self.top_grey_area = QWidget(self)
-        self.top_grey_area.setFixedHeight(30)
+        self.top_grey_area.setFixedHeight(24)
         self.top_grey_area.setStyleSheet("background-color: #D9D9D9; border: none;")
         
         top_layout = QHBoxLayout(self.top_grey_area)
@@ -61,16 +62,16 @@ class AuthScreen(QWidget):
         top_layout.addStretch(1)
 
         self.btn_close = QPushButton("×", self.top_grey_area)
-        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.setFixedSize(24, 24)
         self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.setStyleSheet("color: #FF0000; background: transparent; border: none; font-size: 24px; font-weight: bold;")
         self.btn_close.clicked.connect(self.close)
         top_layout.addWidget(self.btn_close)
         
         main_layout.addWidget(self.top_grey_area)
 
         self.top_white_line = QWidget(self)
-        self.top_white_line.setFixedHeight(4)
+        self.top_white_line.setFixedHeight(3)
         self.top_white_line.setStyleSheet("background-color: #FFFFFF; border: none;")
         main_layout.addWidget(self.top_white_line)
 
@@ -78,13 +79,13 @@ class AuthScreen(QWidget):
         main_layout.addWidget(content_container)
 
         root = QVBoxLayout(content_container)
-        root.setContentsMargins(10, 28, 28, 22)
-        root.setSpacing(0)
+        root.setContentsMargins(15, 15, 15, 15)
+        root.setSpacing(10)
 
         title = QLabel("Введите ID_оператора", self)
         title.setWordWrap(True)
         title.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        title.setFont(QFont("Times New Roman", 22, QFont.Normal))
+        title.setFont(QFont("Times New Roman", 16, QFont.Normal))
         title.setStyleSheet("color: #000000; background: transparent;")
         root.addWidget(title)
 
@@ -92,27 +93,27 @@ class AuthScreen(QWidget):
 
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(5)
+        row.setSpacing(10)
 
         self.in_id = QLineEdit(self)
-        self.in_id.setFixedHeight(52)
-        self.in_id.setFont(QFont("Times New Roman", 24, QFont.Normal))
+        self.in_id.setFixedHeight(36)
+        self.in_id.setFont(QFont("Times New Roman", 18, QFont.Normal))
         self.in_id.setStyleSheet("""
             QLineEdit {
                 background-color: #FFFFFF;
                 border: none;
-                padding-left: 12px;
+                padding-left: 8px;
             }
         """)
         self.in_id.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d+"), self))
 
         self.btn_login = QPushButton("Далее", self)
-        self.btn_login.setFixedSize(156, 52)
+        self.btn_login.setFixedSize(100, 36)
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("""
             QPushButton {
                 background-color: #2C2C2C; color: #FFFFFF; border: none;
-                border-radius: 8px; font-family: "Times New Roman"; font-size: 14px; font-weight: 600;
+                border-radius: 6px; font-family: "Times New Roman"; font-size: 13px; font-weight: 600;
             }
             QPushButton:hover { background-color: #44CC29; }
             QPushButton:pressed { background-color: #1F1F1F; }
@@ -153,12 +154,21 @@ class AuthScreen(QWidget):
         else:
             QMessageBox.warning(self, "Ошибка", "Оператор с таким ID не найден")
 
-    def center_on_parent(self, parent):
-        parent_rect = parent.frameGeometry()
-        self_rect = self.frameGeometry()
-        x = parent_rect.x() + (parent_rect.width() - self_rect.width()) // 2
-        y = parent_rect.y() + (parent_rect.height() - self_rect.height()) // 2
-        self.move(QApplication.desktop().availableGeometry().center() - self.rect().center())
+    def position_over_terminal(self, parent):
+        parent_global_pos = parent.mapToGlobal(QPoint(0, 0))
+        
+        col_w = parent.W // 3
+        
+        black_area_y_offset = parent.FRAME_H + parent.HEADER_H + parent.SECTION_H
+        black_area_h = parent.BODY_H - parent.SECTION_H
+        
+        abs_x = parent_global_pos.x() + col_w
+        abs_y = parent_global_pos.y() + black_area_y_offset
+        
+        center_x = abs_x + (col_w - self.width()) // 2
+        center_y = abs_y + (black_area_h - self.height()) // 2
+        
+        self.move(center_x, center_y)
 
 
 class RemoteForm(QWidget):
@@ -166,6 +176,8 @@ class RemoteForm(QWidget):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self._old_pos = None
+        
+        self.is_movable = False
 
         self.W = 1000
         self.H = 450
@@ -197,11 +209,11 @@ class RemoteForm(QWidget):
         self.auth_window = None
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton and event.y() <= self.FRAME_H:
+        if self.is_movable and event.button() == Qt.LeftButton and event.y() <= self.FRAME_H:
             self._old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if self._old_pos is not None:
+        if self.is_movable and self._old_pos is not None:
             delta = QPoint(event.globalPos() - self._old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self._old_pos = event.globalPos()
@@ -227,6 +239,7 @@ class RemoteForm(QWidget):
 
     def init_session(self, user_row):
         self.operator_data = user_row
+        self.is_movable = True 
 
         l_name = user_row.get("last_name", "")
         f_name = user_row.get("first_name", "")
@@ -316,7 +329,6 @@ class RemoteForm(QWidget):
         self._update_terminal_block(current_pulse)
 
     def _update_indication_block(self, pulse):
-
         if pulse > 0:
             self.lbl_pulse_val.setText(str(pulse))
         else:
@@ -400,14 +412,14 @@ class RemoteForm(QWidget):
         self._refresh_left_info()
         self.mid_info.setText("")
         self.lbl_pulse_val.setText("")
-        self.lbl_sq_green.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
-        self.lbl_sq_yellow.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
-        self.lbl_sq_red.setStyleSheet(f"background-color: white; border: 2px solid #0000FF;")
+        self.lbl_sq_green.setStyleSheet("background-color: white; border: 2px solid #0000FF;")
+        self.lbl_sq_yellow.setStyleSheet("background-color: white; border: 2px solid #0000FF;")
+        self.lbl_sq_red.setStyleSheet("background-color: white; border: 2px solid #0000FF;")
 
-        self.hide()
+        self.is_movable = False
 
         self.auth_window = AuthScreen(self)
-        self.auth_window.center_on_parent(self)
+        self.auth_window.position_over_terminal(self)
         self.auth_window.show()
 
     def _build_ui(self):
@@ -622,6 +634,7 @@ class RemoteForm(QWidget):
         self.lbl_sq_red = ShapeWidget("square", "white", parent)
         self.lbl_sq_red.move(x_start + 2 * (shape_s + gap), y_start)
 
+
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
@@ -631,9 +644,16 @@ if __name__ == "__main__":
     app.setFont(QFont("Times New Roman", 14))
 
     main_window = RemoteForm()
+    
+    screen_rect = QApplication.desktop().availableGeometry()
+    x = (screen_rect.width() - main_window.width()) // 2
+    y = (screen_rect.height() - main_window.height()) // 2
+    main_window.move(x, y)
+    
+    main_window.show()
 
     auth_window = AuthScreen(main_window)
-    auth_window.center_on_parent(main_window)
+    auth_window.position_over_terminal(main_window)
     auth_window.show()
 
     sys.exit(app.exec_())

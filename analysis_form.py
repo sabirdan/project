@@ -4,7 +4,7 @@ import time
 import serial
 import collections
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QObject
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QLineEdit, QMessageBox, QVBoxLayout, QHBoxLayout
 )
@@ -21,8 +21,10 @@ class SerialWorker(QObject):
         
         self.filter_size = 10
         self.raw_buffer = collections.deque(maxlen=self.filter_size)
-        self.threshold_on = 650
-        self.threshold_off = 500
+        
+        self.window_size = 150 
+        self.history = collections.deque(maxlen=self.window_size)
+        
         self.is_peak = False
 
     @pyqtSlot()
@@ -38,26 +40,42 @@ class SerialWorker(QObject):
                     if line.isdigit():
                         val = int(line)
                         self.raw_buffer.append(val)
+                        
                         filtered_val = int(sum(self.raw_buffer) / len(self.raw_buffer))
+                        self.history.append(filtered_val)
+                        
                         current_time = time.time()
                         
-                        if not self.is_peak:
-                            if filtered_val > self.threshold_on:
-                                duration = current_time - last_peak_time
-                                if duration > 0.3:
-                                    bpm = int(60 / duration)
-                                    if 40 < bpm < 180:
-                                        beats.append(bpm)
-                                        if len(beats) > 8: beats.pop(0)
-                                    last_peak_time = current_time
-                                    self.is_peak = True
-                        else:
-                            if filtered_val < self.threshold_off:
+                        if len(self.history) >= 50:
+                            local_max = max(self.history)
+                            local_min = min(self.history)
+                            amplitude = local_max - local_min
+                            
+                            threshold_on = local_min + (amplitude * 0.7)
+                            threshold_off = local_min + (amplitude * 0.4)
+                            
+                            if amplitude > 30:
+                                if not self.is_peak:
+                                    if filtered_val > threshold_on:
+                                        duration = current_time - last_peak_time
+                                        if duration > 0.3: 
+                                            bpm = int(60 / duration)
+                                            if 40 < bpm < 180:
+                                                beats.append(bpm)
+                                                if len(beats) > 8: 
+                                                    beats.pop(0)
+                                            last_peak_time = current_time
+                                        self.is_peak = True
+                                else:
+                                    if filtered_val < threshold_off:
+                                        self.is_peak = False
+                            else:
                                 self.is_peak = False
                         
                         avg_bpm = int(sum(beats) / len(beats)) if beats else 0
                         pulse_str = str(avg_bpm) if avg_bpm > 0 else "--"
                         status_pulse = "OK" if avg_bpm > 0 else "Поиск..."
+                        
                         self.data_received.emit("OK", status_pulse, pulse_str)
                 else:
                     time.sleep(0.005)
@@ -299,16 +317,29 @@ class AnalysisForm(QWidget):
     def _build_connection_content(self, parent, w):
         side_margin, gap, block_h, y_pos = 25, 20, 150, 20
         block_w = (w - (side_margin * 2) - gap) // 2 
-
-        box1 = QLabel("1 пример", parent)
-        box1.setGeometry(side_margin, y_pos, block_w, block_h)
-        box1.setStyleSheet("background-color: white; border: none; border-radius: 0px;")
-        box1.setAlignment(Qt.AlignCenter)
-
-        box2 = QLabel("2 пример", parent)
-        box2.setGeometry(side_margin + block_w + gap, y_pos, block_w, block_h)
-        box2.setStyleSheet("background-color: white; border: none; border-radius: 0px;")
-        box2.setAlignment(Qt.AlignCenter)
+        
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        images = ["hand1.png", "hand2.png"]
+        
+        for i, img_name in enumerate(images):
+            box = QLabel(parent)
+            box.setGeometry(side_margin + (block_w + gap) * i, y_pos, block_w, block_h)
+            
+            img_path = os.path.join(base_dir, "assets", img_name)
+            pixmap = QPixmap(img_path)
+            
+            if not pixmap.isNull():
+                box.setPixmap(pixmap.scaled(
+                    block_w, block_h, 
+                    Qt.KeepAspectRatio, 
+                    Qt.SmoothTransformation
+                ))
+            else:
+                box.setText(f"Ошибка:\n{img_name}")
+                box.setStyleSheet("background-color: white; color: red;")
+                
+            box.setAlignment(Qt.AlignCenter)
 
         lbl_hint = QLabel("Наклеить электроды как показано\nна рисунке и подключить контакты", parent)
         lbl_hint.setGeometry(side_margin, y_pos + block_h + 10, w - (side_margin * 2), 50)
@@ -317,7 +348,19 @@ class AnalysisForm(QWidget):
 
         self.btn_next = QPushButton("Далее", parent)
         self.btn_next.setGeometry(w - 120 - side_margin, 230, 110, 36)
-        self.btn_next.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;} QPushButton:hover { background: #44CC29; }")
+        self.btn_next.setCursor(Qt.PointingHandCursor)
+        self.btn_next.setStyleSheet("""
+            QPushButton { 
+                background: #2C2C2C; 
+                color: white; 
+                border-radius: 6px; 
+                font-weight: bold; 
+                font-size: 14px;
+            } 
+            QPushButton:hover { 
+                background: #44CC29; 
+            }
+        """)
         self.btn_next.clicked.connect(self._go_control)
 
     def _draw_grid(self, col_w, left_body_w):
