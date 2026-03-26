@@ -239,18 +239,20 @@ class RemoteForm(QWidget):
 
     def init_session(self, user_row):
         self.operator_data = user_row
-        self.is_movable = True 
+
+        self.is_movable = True
 
         l_name = user_row.get("last_name", "")
         f_name = user_row.get("first_name", "")
-        p_name = user_row.get("patronymic", "")
+        p_name = user_row.get("middle_name", "") 
         age = user_row.get("age", "")
 
         self.lbl_name.setText(f"{l_name} {f_name}\n{p_name}")
         self.lbl_age.setText(f"{age} лет")
 
-        op_id = user_row.get("id", "")
-        photo_path = os.path.join(self.base_dir, "operators", f"ID_0000{op_id}.jpg")
+        op_id = int(user_row.get("id", "0"))
+        ops_dir = utils._ensure_dirs(self.base_dir)
+        photo_path = os.path.join(ops_dir, f"ID_{utils._id_str(op_id)}.jpg")
 
         if os.path.exists(photo_path):
             pix = QPixmap(photo_path)
