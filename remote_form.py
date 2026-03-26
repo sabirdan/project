@@ -222,8 +222,8 @@ class RemoteForm(QWidget):
         self._old_pos = None
 
     def _setup_audio(self):
-        warn_path = os.path.join(self.base_dir, "warning.wav")
-        alarm_path = os.path.join(self.base_dir, "alarm.wav")
+        warn_path = os.path.join(self.base_dir, "yellowSound.mp3")
+        alarm_path = os.path.join(self.base_dir, "redSound.mp3")
 
         if os.path.exists(warn_path):
             self.playlist_warn = QMediaPlaylist()

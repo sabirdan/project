@@ -1,9 +1,7 @@
 import os
 import csv
-import io
 import numpy as np
 from datetime import datetime
-
 import cv2
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import (
@@ -17,14 +15,7 @@ CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
-OPENCV_FACE_OK = False
-try:
-    RECOGNIZER = cv2.face.LBPHFaceRecognizer_create()
-    OPENCV_FACE_OK = True
-except AttributeError:
-    RECOGNIZER = None
-    print("Внимание: LBPHFaceRecognizer недоступен. Установите opencv-contrib-python.")
-
+OPENCV_FACE_OK = True
 
 def _safe_csv_cell(s: str) -> str:
     s = (s or "").strip()
@@ -127,14 +118,25 @@ def get_cv_face(frame_bgr):
         return face_gray, (y, x+w, y+h, x)
     return None, None
 
-def cv_compare_faces(ref_gray, live_gray, threshold=65):
+def cv_compare_faces(ref_gray, live_gray, threshold=0.55):
     if not OPENCV_FACE_OK or ref_gray is None or live_gray is None:
         return False
+        
     try:
-        RECOGNIZER.train([ref_gray], np.array([1]))
-        _, confidence = RECOGNIZER.predict(live_gray)
-        return confidence < threshold
-    except Exception:
+        target_size = (150, 150)
+        ref_resized = cv2.resize(ref_gray, target_size)
+        live_resized = cv2.resize(live_gray, target_size)
+        
+        ref_eq = cv2.equalizeHist(ref_resized)
+        live_eq = cv2.equalizeHist(live_resized)
+        
+        result = cv2.matchTemplate(ref_eq, live_eq, cv2.TM_CCOEFF_NORMED)
+        similarity = result[0][0]
+        
+        return float(similarity) >= threshold
+        
+    except Exception as e:
+        print(f"Ошибка при сравнении лиц: {e}")
         return False
 
 def cv_load_known_faces(ops_dir, exclude_id=None):
