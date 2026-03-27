@@ -298,7 +298,7 @@ class ControlForm(QWidget):
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = frame_rgb.shape
-        self.video_label.setPixmap(QPixmap.fromImage(QImage(frame_rgb.data, w, h, ch * w, QImage.Format_RGB888)).scaled(self.video_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.video_label.setPixmap(QPixmap.fromImage(QImage(frame_rgb.data, w, h, ch * w, QImage.Format_RGB888)).scaled(self.video_label.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
 
     def _draw_grid(self, col_w):
         sep1 = QFrame(self)
