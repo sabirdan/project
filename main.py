@@ -2,14 +2,21 @@ import sys
 import os
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QGuiApplication
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout
-from utils import _now_time_str, _ensure_dirs, _csv_path, _ensure_csv
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QPushButton, 
+    QVBoxLayout, QHBoxLayout
+)
+from utils import (
+    _now_time_str, _ensure_dirs, _csv_path, _ensure_csv
+)
 from registration_form import RegistrationForm
 from auth_screen import AuthScreen
+
 
 class StartScreen(QWidget):
     def __init__(self):
         super().__init__()
+        
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.software_start_time = _now_time_str()
 
@@ -31,17 +38,20 @@ class StartScreen(QWidget):
 
         self.top_grey_area = QWidget(self)
         self.top_grey_area.setFixedHeight(30)
+        
         top_layout = QHBoxLayout(self.top_grey_area)
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.addStretch(1)
 
-        self.btn_close = QPushButton("×", self.top_grey_area)
+        self.btn_close = QPushButton("X", self.top_grey_area)
         self.btn_close.setFixedSize(30, 30)
         self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet("color: #FF0000; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.setStyleSheet(
+            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
+        )
         self.btn_close.clicked.connect(self.close)
-        top_layout.addWidget(self.btn_close)
         
+        top_layout.addWidget(self.btn_close)
         main_layout.addWidget(self.top_grey_area)
 
         self.top_white_line = QWidget(self)
@@ -77,7 +87,13 @@ class StartScreen(QWidget):
         b.setFixedSize(156, 52)
         b.setCursor(Qt.PointingHandCursor)
         b.setStyleSheet("""
-            QPushButton { background-color: #2C2C2C; color: #FFFFFF; border-radius: 8px; font-weight: 600; font-size: 14px;}
+            QPushButton { 
+                background-color: #2C2C2C; 
+                color: #FFFFFF; 
+                border-radius: 8px; 
+                font-weight: 600; 
+                font-size: 14px;
+            }
             QPushButton:hover { background-color: #44CC29; }
             QPushButton:pressed { background-color: #1F1F1F; }
         """)
@@ -86,30 +102,44 @@ class StartScreen(QWidget):
 
     def open_registration(self):
         if not self.reg_form:
-            self.reg_form = RegistrationForm(self, self.csv_file, self.ops_dir, self.software_start_time)
+            self.reg_form = RegistrationForm(
+                self, self.csv_file, self.ops_dir, self.software_start_time
+            )
+            
         self.reg_form.reset_form()
         self.reg_form.show()
         self.hide()
 
     def open_auth(self):
         if not self.auth_form:
-            self.auth_form = AuthScreen(self, self.csv_file, self.ops_dir, self.software_start_time)
+            self.auth_form = AuthScreen(
+                self, self.csv_file, self.ops_dir, self.software_start_time
+            )
+            
         self.auth_form.show()
         self.hide()
 
     def closeEvent(self, event):
-        if self.reg_form: self.reg_form.close()
-        if self.auth_form: self.auth_form.close()
+        if self.reg_form:
+            self.reg_form.close()
+            
+        if self.auth_form:
+            self.auth_form.close()
+            
         super().closeEvent(event)
 
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    
+    policy = Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(policy)
 
     app = QApplication(sys.argv)
     app.setFont(QFont("Times New Roman", 14))
+    
     w = StartScreen()
     w.show()
+    
     sys.exit(app.exec_())

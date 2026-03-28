@@ -5,14 +5,21 @@ import serial
 import collections
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QObject
 from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame, QLineEdit, QMessageBox, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget, QLabel, QPushButton, QFrame, QLineEdit, 
+    QMessageBox, QVBoxLayout, QHBoxLayout
+)
+
 
 class SerialWorker(QObject):
     data_received = pyqtSignal(str, str, str)
 
     def __init__(self, port="COM5", baud=9600):
         super().__init__()
-        self.port, self.baud, self.running, self.ser = port, baud, True, None
+        self.port = port
+        self.baud = baud
+        self.running = True
+        self.ser = None
         self.raw_buffer = collections.deque(maxlen=10)
         self.history = collections.deque(maxlen=150)
         self.is_peak = False
@@ -21,21 +28,28 @@ class SerialWorker(QObject):
     def run(self):
         try:
             self.ser = serial.Serial(self.port, self.baud, timeout=1)
-            last_peak_time, beats = time.time(), []
+            last_peak_time = time.time()
+            beats = []
+
             while self.running:
                 if self.ser.in_waiting:
                     line = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                    
                     if line.isdigit():
                         val = int(line)
                         self.raw_buffer.append(val)
+                        
                         filtered_val = int(sum(self.raw_buffer) / len(self.raw_buffer))
                         self.history.append(filtered_val)
                         curr_time = time.time()
                         
                         if len(self.history) >= 50:
-                            l_max, l_min = max(self.history), min(self.history)
+                            l_max = max(self.history)
+                            l_min = min(self.history)
                             amp = l_max - l_min
-                            th_on, th_off = l_min + (amp * 0.7), l_min + (amp * 0.4)
+                            
+                            th_on = l_min + (amp * 0.7)
+                            th_off = l_min + (amp * 0.4)
                             
                             if amp > 30:
                                 if not self.is_peak and filtered_val > th_on:
@@ -44,16 +58,22 @@ class SerialWorker(QObject):
                                         bpm = int(60 / dur)
                                         if 40 < bpm < 180:
                                             beats.append(bpm)
-                                            if len(beats) > 8: beats.pop(0)
+                                            if len(beats) > 8:
+                                                beats.pop(0)
                                         last_peak_time = curr_time
                                     self.is_peak = True
+                                
                                 elif self.is_peak and filtered_val < th_off:
                                     self.is_peak = False
                             else:
                                 self.is_peak = False
                         
                         avg_bpm = int(sum(beats) / len(beats)) if beats else 0
-                        self.data_received.emit("OK", "OK" if avg_bpm > 0 else "Поиск...", str(avg_bpm) if avg_bpm > 0 else "--")
+                        
+                        status_pulse = "OK" if avg_bpm > 0 else "Поиск..."
+                        pulse_val = str(avg_bpm) if avg_bpm > 0 else "--"
+                        
+                        self.data_received.emit("OK", status_pulse, pulse_val)
                 else:
                     time.sleep(0.005)
         except Exception:
@@ -61,18 +81,29 @@ class SerialWorker(QObject):
 
     def stop(self):
         self.running = False
-        if self.ser and self.ser.is_open: self.ser.close()
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+
 
 class AnalysisForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.operator_row = operator_row or {}
-        self.csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'operators_db.csv'))
-        self.instr_window, self.control_window = None, None
+        
+        dir_path = os.path.dirname(__file__)
+        self.csv_path = os.path.abspath(os.path.join(dir_path, 'operators_db.csv'))
+        
+        self.instr_window = None
+        self.control_window = None
 
-        self.W, self.H, self.HEADER_H, self.SECTION_H, self.GRID_T = 1000, 450, 120, 44, 4
+        self.W = 1000
+        self.H = 450
+        self.HEADER_H = 120
+        self.SECTION_H = 44
+        self.GRID_T = 4
         self.BODY_H = self.H - self.HEADER_H
+
         self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Анализ оператора")
         self.setStyleSheet("background-color: #D9D9D9;")
@@ -84,14 +115,17 @@ class AnalysisForm(QWidget):
         top_grey = QWidget(self)
         top_grey.setFixedHeight(30)
         top_layout = QHBoxLayout(top_grey)
-        top_layout.setContentsMargins(0, 0, 5, 0)
+        top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.addStretch(1)
 
-        self.btn_close = QPushButton("×", top_grey)
+        self.btn_close = QPushButton("X", top_grey)
         self.btn_close.setFixedSize(45, 30)
         self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet("color: #FF0000; border: none; font-size: 36px; font-weight: bold;")
+        self.btn_close.setStyleSheet(
+            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
+        )
         self.btn_close.clicked.connect(self.close)
+        
         top_layout.addWidget(self.btn_close)
         main_layout.addWidget(top_grey)
 
@@ -115,12 +149,20 @@ class AnalysisForm(QWidget):
         self.thread.start()
 
     def _fill_data(self):
-        self.lbl_op_name.setText(f"{self.operator_row.get('last_name', '')} {self.operator_row.get('first_name', '')}")
-        if self.operator_row.get("pulse_threshold_critical"): self.edit_threshold.setText(self.operator_row["pulse_threshold_critical"])
-        if self.operator_row.get("pulse_normal"): self.edit_normal.setText(self.operator_row["pulse_normal"])
+        f_name = self.operator_row.get('first_name', '')
+        l_name = self.operator_row.get('last_name', '')
+        self.lbl_op_name.setText(f"{l_name} {f_name}")
+        
+        if self.operator_row.get("pulse_threshold_critical"):
+            self.edit_threshold.setText(self.operator_row["pulse_threshold_critical"])
+        
+        if self.operator_row.get("pulse_normal"):
+            self.edit_normal.setText(self.operator_row["pulse_normal"])
 
     def _build_ui(self):
-        col_w, left_w, right_w = self.W // 3, (self.W // 3) * 2, self.W - ((self.W // 3) * 2)
+        col_w = self.W // 3
+        left_w = (self.W // 3) * 2
+        right_w = self.W - left_w
 
         menu_frame = QFrame(self.content_container)
         menu_frame.setGeometry(0, 0, col_w, self.HEADER_H)
@@ -131,20 +173,32 @@ class AnalysisForm(QWidget):
         lbl_menu.setFont(QFont("Times New Roman", 18))
 
         btn_w = (col_w - 16) // 3
-        base_style = "color: white; border-radius: 18px; font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        b_style = (
+            "color: white; border-radius: 18px; "
+            "font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        )
 
         self.btn_instr = QPushButton("Инструкция", menu_frame)
         self.btn_instr.setGeometry(0, 65, btn_w, 36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {base_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_instr.setStyleSheet(
+            f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
+            f"QPushButton:hover {{ background-color: #9E4576; }}"
+        )
         self.btn_instr.clicked.connect(self._go_instruction)
 
         self.btn_analysis = QPushButton("Анализ", menu_frame)
         self.btn_analysis.setGeometry(btn_w + 8, 65, btn_w, 36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: #44CC29; {base_style} }} QPushButton:hover {{ background-color: #45D44A; }}")
+        self.btn_analysis.setStyleSheet(
+            f"QPushButton {{ background-color: #44CC29; {b_style} }} "
+            f"QPushButton:hover {{ background-color: #45D44A; }}"
+        )
 
         self.btn_control = QPushButton("Управление", menu_frame)
         self.btn_control.setGeometry((btn_w + 8) * 2, 65, col_w - (btn_w + 8) * 2, 36)
-        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {base_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_control.setStyleSheet(
+            f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
+            f"QPushButton:hover {{ background-color: #9E4576; }}"
+        )
         self.btn_control.clicked.connect(self._go_control)
 
         logo_frame = QFrame(self.content_container)
@@ -226,7 +280,11 @@ class AnalysisForm(QWidget):
 
         btn_save = QPushButton("Записать", parent)
         btn_save.setGeometry(525, 30, 110, 40) 
-        btn_save.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px; } QPushButton:hover { background: #44CC29; }")
+        btn_save.setStyleSheet(
+            "QPushButton { background: #2C2C2C; color: white; border-radius: 6px; "
+            "font-weight: bold; font-size: 14px; } "
+            "QPushButton:hover { background: #44CC29; }"
+        )
         btn_save.clicked.connect(self._save_to_csv)
 
         line_sep = QFrame(parent)
@@ -255,10 +313,14 @@ class AnalysisForm(QWidget):
         for i, img_name in enumerate(["hand1.png", "hand2.png"]):
             box = QLabel(parent)
             box.setGeometry(25 + (block_w + 20) * i, 20, block_w, 150)
-            box.setPixmap(QPixmap(f"assets/{img_name}").scaled(block_w, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            img_path = f"assets/{img_name}"
+            box.setPixmap(QPixmap(img_path).scaled(block_w, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             box.setAlignment(Qt.AlignCenter)
 
-        lbl_hint = QLabel("Наклеить электроды как показано\nна рисунке и подключить контакты", parent)
+        lbl_hint = QLabel(
+            "Наклеить электроды как показано\nна рисунке и подключить контакты", 
+            parent
+        )
         lbl_hint.setGeometry(25, 180, w - 50, 50)
         lbl_hint.setWordWrap(True)
         lbl_hint.setFont(QFont("Times New Roman", 11))
@@ -266,23 +328,27 @@ class AnalysisForm(QWidget):
         self.btn_next = QPushButton("Далее", parent)
         self.btn_next.setGeometry(w - 145, 230, 110, 36)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet("QPushButton { background: #2C2C2C; color: white; border-radius: 6px; font-weight: bold; font-size: 14px; } QPushButton:hover { background: #44CC29; }")
+        self.btn_next.setStyleSheet(
+            "QPushButton { background: #2C2C2C; color: white; border-radius: 6px; "
+            "font-weight: bold; font-size: 14px; } "
+            "QPushButton:hover { background: #44CC29; }"
+        )
         self.btn_next.clicked.connect(self._go_control)
 
     def _draw_grid(self, col_w, left_w):
         for x in [col_w, col_w * 2]:
-            sep1 = QFrame(self.content_container)
-            sep1.setGeometry(x - 2, 0, 4, self.HEADER_H)
-            sep1.setStyleSheet("background-color: white;")
+            sep = QFrame(self.content_container)
+            sep.setGeometry(x - 2, 0, 4, self.HEADER_H)
+            sep.setStyleSheet("background-color: white;")
             
         for y in [self.HEADER_H, self.HEADER_H + self.SECTION_H]:
-            sep2 = QFrame(self.content_container)
-            sep2.setGeometry(0, y, self.W, 4)
-            sep2.setStyleSheet("background-color: white;")
+            sep = QFrame(self.content_container)
+            sep.setGeometry(0, y, self.W, 4)
+            sep.setStyleSheet("background-color: white;")
             
-        sep3 = QFrame(self.content_container)
-        sep3.setGeometry(left_w - 2, self.HEADER_H, 4, self.BODY_H)
-        sep3.setStyleSheet("background-color: white;")
+        sep_v = QFrame(self.content_container)
+        sep_v.setGeometry(left_w - 2, self.HEADER_H, 4, self.BODY_H)
+        sep_v.setStyleSheet("background-color: white;")
 
     def _update_terminal_ui(self, status_conn, status_pulse, current_pulse):
         txt_conn = "OK" if status_conn == "OK" else "FAIL"
@@ -291,12 +357,16 @@ class AnalysisForm(QWidget):
             f"Проверка пульса . . . . . . . . . . . . . . . . {status_pulse}",
             f"Пульс . . . . . . . . . . . . . . . . . . . . . . . . . . . {current_pulse}"
         ]
+        
         if txt_conn == "OK" and status_pulse == "OK" and current_pulse not in ["--", "ERR"]:
             lines.append("Для перехода в режим управления нажмите далее")
+            
         self.lbl_term.setText("\n".join(lines))
 
     def _save_to_csv(self):
-        th_val, norm_val = self.edit_threshold.text().strip(), self.edit_normal.text().strip()
+        th_val = self.edit_threshold.text().strip()
+        norm_val = self.edit_normal.text().strip()
+        
         if not th_val.isdigit() or not norm_val.isdigit():
             return QMessageBox.warning(self, "Ошибка", "Введите числовые значения пульса.")
 
@@ -304,20 +374,29 @@ class AnalysisForm(QWidget):
         try:
             with open(self.csv_path, "r", newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                fieldnames = list(reader.fieldnames) + ["pulse_threshold_critical", "pulse_normal", "current_pulse"]
-                fieldnames = list(dict.fromkeys(fieldnames)) 
+                f_names = list(reader.fieldnames)
+                if "pulse_threshold_critical" not in f_names:
+                    f_names.append("pulse_threshold_critical")
+                if "pulse_normal" not in f_names:
+                    f_names.append("pulse_normal")
+                if "current_pulse" not in f_names:
+                    f_names.append("current_pulse")
+                
                 rows = list(reader)
 
             for row in rows:
                 if row.get("id") == target_id:
-                    row.update({"pulse_threshold_critical": th_val, "pulse_normal": norm_val, "current_pulse": "0"})
+                    row["pulse_threshold_critical"] = th_val
+                    row["pulse_normal"] = norm_val
+                    row["current_pulse"] = "0"
                     self.operator_row.update(row)
                     break
 
             with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer = csv.DictWriter(f, fieldnames=f_names)
                 writer.writeheader()
                 writer.writerows(rows)
+            
             QMessageBox.information(self, "Успех", "Данные пульса сохранены.")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка CSV", f"Не удалось записать файл:\n{e}")
@@ -325,13 +404,15 @@ class AnalysisForm(QWidget):
     def _go_instruction(self):
         self.close()
         from instruction_form import InstructionForm
-        if not self.instr_window: self.instr_window = InstructionForm(self.operator_row)
+        if not self.instr_window:
+            self.instr_window = InstructionForm(self.operator_row)
         self.instr_window.show()
         
     def _go_control(self):
         self.close()
         from control_form import ControlForm
-        if not self.control_window: self.control_window = ControlForm(self.operator_row)
+        if not self.control_window:
+            self.control_window = ControlForm(self.operator_row)
         self.control_window.show()
 
     def closeEvent(self, event):

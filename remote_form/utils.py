@@ -15,4 +15,6 @@ def _id_str(n: int) -> str:
 
 def _parse_hms_to_seconds(s: str) -> int:
     parts = (s or "00:00:00").strip().split(":")
-    return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2]) if len(parts) == 3 else 0
+    if len(parts) == 3:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+    return 0
