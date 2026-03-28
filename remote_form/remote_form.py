@@ -316,15 +316,15 @@ class RemoteForm(QWidget):
         self.lbl_status.setText("Состояние: <span style='color:gray'>ОЖИДАНИЕ</span>")
         self.lbl_pulse_val.setText("--")
         
-        inactive_style = "background-color: #D0CECF; border: 2px solid #0000FF;"
+        inactive_style = "background-color: #C7C7C7; border: 2px solid #44CC29;"
         for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
             sq.setStyleSheet(inactive_style)
 
     def _update_indication_block(self, pulse):
         self.lbl_pulse_val.setText(str(pulse) if pulse > 0 else "--")
         
-        border_blue = "border: 2px solid #0000FF;"
-        c_green, c_yellow, c_red, c_off = "#07D40B", "#FFFC00", "#D0021B", "#ACA2A1"
+        border_blue = "border: 2px solid #44CC29;"
+        c_green, c_yellow, c_red, c_off = "#009900", "#FFD700", "#FF0000", "#C7C7C7"
 
         if self.current_status == "NORMAL":
             self.player_warning.stop()
@@ -354,7 +354,7 @@ class RemoteForm(QWidget):
             self.lbl_sq_red.setStyleSheet(c_off)
             
             self.lbl_sq_green.set_color(c_off)
-            self.lbl_sq_yellow.set_color("#F9D849")
+            self.lbl_sq_yellow.set_color("#FFD700")
             self.lbl_sq_red.set_color(c_off)
 
         elif self.current_status == "CRITICAL":
@@ -371,7 +371,7 @@ class RemoteForm(QWidget):
             
             self.lbl_sq_green.set_color(c_off)
             self.lbl_sq_yellow.set_color(c_off)
-            self.lbl_sq_red.set_color("#D0021B")
+            self.lbl_sq_red.set_color("#FF0000")
 
     def _update_terminal_block(self, pulse):
         p_str = str(pulse) if pulse > 0 else "--"
@@ -393,8 +393,8 @@ class RemoteForm(QWidget):
         self.player_alarm.stop()
 
         for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
-            sq.set_color("#ACA2A1")
-            sq.setStyleSheet("background-color: white; border: 2px solid #0000FF;")
+            sq.set_color("#C7C7C7")
+            sq.setStyleSheet("background-color: white; border: 2px solid #44CC29;")
 
         self._refresh_left_info()
         self.mid_info.setText("")
@@ -603,7 +603,7 @@ class RemoteForm(QWidget):
         lbl_pulse_title.setFont(QFont("Times New Roman", 28, QFont.Bold))
         
         self.lbl_pulse_val = QLabel("--")
-        self.lbl_pulse_val.setStyleSheet("color: #D32F2F;")
+        self.lbl_pulse_val.setStyleSheet("color: #FF0000;")
         self.lbl_pulse_val.setFont(QFont("Times New Roman", 42, QFont.Bold))
         
         pulse_layout.addWidget(lbl_pulse_title)
@@ -616,9 +616,9 @@ class RemoteForm(QWidget):
         
         shapes_layout = QHBoxLayout()
         shapes_layout.setSpacing(10)
-        self.lbl_sq_green = ShapeWidget("circle", "#ACA2A1")
-        self.lbl_sq_yellow = ShapeWidget("triangle", "#ACA2A1")
-        self.lbl_sq_red = ShapeWidget("square", "#ACA2A1")
+        self.lbl_sq_green = ShapeWidget("circle", "#C7C7C7")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "#C7C7C7")
+        self.lbl_sq_red = ShapeWidget("square", "#C7C7C7")
         
         shapes_layout.addStretch()
         shapes_layout.addWidget(self.lbl_sq_green)
