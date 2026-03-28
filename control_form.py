@@ -9,10 +9,9 @@ from PyQt5.QtCore import QPoint, Qt, QUrl, QTimer, QThread, pyqtSlot
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPixmap, QPolygon
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QFrame, QMessageBox, QHBoxLayout
+    QWidget, QLabel, QPushButton, QFrame, QMessageBox, QHBoxLayout, QVBoxLayout, QSpacerItem, QSizePolicy, QGridLayout
 )
 from analysis_form import SerialWorker
-
 
 class ShapeWidget(QWidget):
     def __init__(self, shape_type, color, parent=None):
@@ -45,7 +44,6 @@ class ShapeWidget(QWidget):
         elif self.shape_type == "square":
             painter.drawRect(0, 0, self.width(), self.height())
 
-
 class ControlForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
@@ -70,13 +68,8 @@ class ControlForm(QWidget):
         self.W = 1000
         self.TITLE_H = 30
         self.LINE_H = 4
-        self.HEADER_H = 120
-        self.GRID_T = 4
-        
-        self.Y_OFFSET = self.TITLE_H + self.LINE_H
         self.ORIG_H = 450
-        self.H = self.ORIG_H + self.Y_OFFSET
-        self.BODY_H = self.ORIG_H - self.HEADER_H
+        self.H = self.ORIG_H + self.TITLE_H + self.LINE_H
         
         self.setFixedSize(self.W, self.H)
         self.setWindowTitle("НейроБодр - Мониторинг")
@@ -128,40 +121,330 @@ class ControlForm(QWidget):
                     break
 
     def _build_ui(self):
-        top_grey = QWidget(self)
-        top_grey.setGeometry(0, 0, self.W, self.TITLE_H)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        top_grey = QWidget()
+        top_grey.setFixedHeight(self.TITLE_H)
         top_layout = QHBoxLayout(top_grey)
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.addStretch(1)
 
-        self.btn_close = QPushButton("X", top_grey)
-        self.btn_close.setFixedSize(30, 30)
+        self.btn_close = QPushButton("X")
+        self.btn_close.setFixedSize(45, self.TITLE_H)
         self.btn_close.setCursor(Qt.PointingHandCursor)
         self.btn_close.setStyleSheet(
             "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
         )
         self.btn_close.clicked.connect(self.close)
         top_layout.addWidget(self.btn_close)
+        
+        main_layout.addWidget(top_grey)
 
-        top_line = QFrame(self)
-        top_line.setGeometry(0, self.TITLE_H, self.W, self.LINE_H)
+        top_line = QFrame()
+        top_line.setFixedHeight(self.LINE_H)
         top_line.setStyleSheet("background-color: #FFFFFF;")
+        main_layout.addWidget(top_line)
 
-        col_w = self.W // 3 
-        video_w = self.W - col_w
+        content_container = QWidget()
+        content_container.setStyleSheet("background-color: #FFFFFF;")
+        
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(4)
+        
+        main_layout.addWidget(content_container)
 
-        self._build_header(col_w)
+        header_row = QWidget()
+        header_row.setFixedHeight(120)
+        header_layout = QHBoxLayout(header_row)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(4)
+        
+        menu_frame = QFrame(); menu_frame.setStyleSheet("background-color: #D9D9D9;")
+        logo_frame = QFrame(); logo_frame.setStyleSheet("background-color: #44CC29;")
+        id_frame = QFrame(); id_frame.setStyleSheet("background-color: #D9D9D9;")
+        
+        header_layout.addWidget(menu_frame, stretch=1)
+        header_layout.addWidget(logo_frame, stretch=1)
+        header_layout.addWidget(id_frame, stretch=1)
+        
+        content_layout.addWidget(header_row)
 
-        info_frame = QFrame(self)
-        info_frame.setGeometry(0, self.HEADER_H + self.Y_OFFSET, col_w, self.BODY_H)
-        self._build_left_info_panel(info_frame, col_w)
+        menu_vbox = QVBoxLayout(menu_frame)
+        menu_vbox.setContentsMargins(10, 15, 10, 15)
+        
+        lbl_menu = QLabel("Меню управления")
+        lbl_menu.setAlignment(Qt.AlignCenter)
+        lbl_menu.setFont(QFont("Times New Roman", 18))
+        menu_vbox.addWidget(lbl_menu)
+        
+        menu_vbox.addStretch()
+        
+        btn_hbox = QHBoxLayout()
+        b_style = (
+            "color: white; border-radius: 18px; "
+            "font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        )
+        
+        self.btn_instr = QPushButton("Инструкция")
+        self.btn_instr.setFixedHeight(36)
+        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_instr.clicked.connect(self._go_instruction)
+        
+        self.btn_analysis = QPushButton("Анализ")
+        self.btn_analysis.setFixedHeight(36)
+        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_analysis.clicked.connect(self._go_analysis)
+        
+        self.btn_control = QPushButton("Управление")
+        self.btn_control.setFixedHeight(36)
+        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: #44CC29; {b_style} }}")
+        
+        btn_hbox.addWidget(self.btn_instr)
+        btn_hbox.addWidget(self.btn_analysis)
+        btn_hbox.addWidget(self.btn_control)
+        menu_vbox.addLayout(btn_hbox)
 
-        video_frame = QFrame(self)
-        video_frame.setGeometry(col_w, self.HEADER_H + self.Y_OFFSET, video_w, self.BODY_H)
-        video_frame.setStyleSheet("background-color: #2b2b2b;")
-        self._build_video_area(video_frame, video_w, self.BODY_H)
+        logo_vbox = QVBoxLayout(logo_frame)
+        logo_vbox.setContentsMargins(0, 10, 0, 10)
+        logo_vbox.setSpacing(5)
+        
+        lbl_logo = QLabel("НейроБодр")
+        lbl_logo.setAlignment(Qt.AlignCenter)
+        lbl_logo.setStyleSheet("color: white; font-weight: bold;")
+        lbl_logo.setFont(QFont("Times New Roman", 24))
+        logo_vbox.addWidget(lbl_logo)
+        
+        line_layout = QHBoxLayout()
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        line = QFrame()
+        line.setFixedHeight(2)
+        line.setStyleSheet("background-color: white;")
+        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line_layout.addWidget(line, stretch=3) 
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        logo_vbox.addLayout(line_layout)
+        
+        lbl_desc = QLabel("Программа для мониторинга\nсостояния водителей")
+        lbl_desc.setAlignment(Qt.AlignCenter)
+        lbl_desc.setStyleSheet("color: white;")
+        lbl_desc.setFont(QFont("Times New Roman", 14))
+        logo_vbox.addWidget(lbl_desc)
 
-        self._draw_grid(col_w)
+        id_vbox = QVBoxLayout(id_frame)
+        id_vbox.setContentsMargins(0, 0, 0, 0)
+        id_vbox.setSpacing(0)
+        
+        lbl_id_title = QLabel("Идентификация")
+        lbl_id_title.setFixedHeight(44)
+        lbl_id_title.setAlignment(Qt.AlignCenter)
+        lbl_id_title.setFont(QFont("Times New Roman", 14))
+        id_vbox.addWidget(lbl_id_title)
+        
+        id_sep = QFrame()
+        id_sep.setFixedHeight(4)
+        id_sep.setStyleSheet("background-color: white;")
+        id_vbox.addWidget(id_sep)
+        
+        id_data_hbox = QHBoxLayout()
+        id_data_hbox.setContentsMargins(20, 10, 20, 10)
+        
+        lbl_op_status = QLabel("Оператор\nопределен:")
+        lbl_op_status.setFont(QFont("Times New Roman", 14))
+        
+        f_name = self.operator_row.get('first_name', '')
+        l_name = self.operator_row.get('last_name', '')
+        self.lbl_op_name = QLabel(f"{l_name} {f_name}")
+        self.lbl_op_name.setFont(QFont("Times New Roman", 16))
+        
+        id_data_hbox.addWidget(lbl_op_status)
+        id_data_hbox.addStretch()
+        id_data_hbox.addWidget(self.lbl_op_name)
+        id_vbox.addLayout(id_data_hbox)
+
+        body_row = QWidget()
+        body_layout = QHBoxLayout(body_row)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(4)
+        
+        self.left_col = QFrame()
+        self.left_col.setStyleSheet("background-color: #D9D9D9;")
+        self.video_col = QFrame()
+        self.video_col.setStyleSheet("background-color: #2b2b2b;")
+        
+        body_layout.addWidget(self.left_col, stretch=1)
+        body_layout.addWidget(self.video_col, stretch=2)
+        
+        content_layout.addWidget(body_row, stretch=1)
+
+        self._build_left_info_panel()
+        self._build_video_area()
+
+    def _build_left_info_panel(self):
+        left_layout = QVBoxLayout(self.left_col)
+        left_layout.setContentsMargins(0, 10, 0, 0)
+        left_layout.setSpacing(0)
+
+        font_label = QFont("Times New Roman", 12)
+        font_val = QFont("Times New Roman", 12, QFont.Bold)
+        font_header = QFont("Times New Roman", 14)
+        font_term = QFont("Consolas", 10)
+
+        dt_str = utils._now_date_str() + " / " + utils._now_time_str()
+        start_str = self.operator_row.get("software_start_time", utils._now_time_str())
+
+        grid_widget = QWidget()
+        grid_layout = QGridLayout(grid_widget)
+        grid_layout.setContentsMargins(15, 0, 15, 10)
+        grid_layout.setVerticalSpacing(5)
+
+        lbl_t1 = QLabel("Дата/время:")
+        lbl_t1.setFont(font_label)
+        self.lbl_dt_val = QLabel(dt_str)
+        self.lbl_dt_val.setFont(font_val)
+        grid_layout.addWidget(lbl_t1, 0, 0)
+        grid_layout.addWidget(self.lbl_dt_val, 0, 1)
+
+        lbl_t2 = QLabel("Время запуска:")
+        lbl_t2.setFont(font_label)
+        self.lbl_start_val = QLabel(start_str)
+        self.lbl_start_val.setFont(font_val)
+        grid_layout.addWidget(lbl_t2, 1, 0)
+        grid_layout.addWidget(self.lbl_start_val, 1, 1)
+
+        lbl_t3 = QLabel("Состояние оператора:")
+        lbl_t3.setFont(font_label)
+        self.lbl_state_val = QLabel("НОРМА")
+        self.lbl_state_val.setFont(font_val)
+        self.lbl_state_val.setStyleSheet("color: #009900;")
+        grid_layout.addWidget(lbl_t3, 2, 0)
+        grid_layout.addWidget(self.lbl_state_val, 2, 1)
+        
+        left_layout.addWidget(grid_widget)
+
+        sep1 = QFrame()
+        sep1.setFixedHeight(4)
+        sep1.setStyleSheet("background-color: white;")
+        left_layout.addWidget(sep1)
+
+        lbl_term_head = QLabel("Терминальный блок")
+        lbl_term_head.setFixedHeight(30)
+        lbl_term_head.setAlignment(Qt.AlignCenter)
+        lbl_term_head.setFont(font_header)
+        left_layout.addWidget(lbl_term_head)
+
+        sep2 = QFrame()
+        sep2.setFixedHeight(4)
+        sep2.setStyleSheet("background-color: white;")
+        left_layout.addWidget(sep2)
+
+        term_container = QWidget()
+        term_layout = QVBoxLayout(term_container)
+        term_layout.setContentsMargins(3, 0, 3, 0)
+        
+        term_box = QFrame()
+        term_box.setStyleSheet("background-color: black;")
+        term_box_layout = QVBoxLayout(term_box)
+        
+        self.lbl_term_text = QLabel("Состояние нормальное\nПульс --")
+        self.lbl_term_text.setStyleSheet("color: white; background: transparent;")
+        self.lbl_term_text.setFont(font_term)
+        self.lbl_term_text.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        term_box_layout.addWidget(self.lbl_term_text)
+        
+        term_layout.addWidget(term_box)
+        left_layout.addWidget(term_container, stretch=1)
+
+        sep3 = QFrame()
+        sep3.setFixedHeight(4)
+        sep3.setStyleSheet("background-color: white;")
+        left_layout.addWidget(sep3)
+
+        lbl_time_head = QLabel("Допустимое время")
+        lbl_time_head.setFixedHeight(30)
+        lbl_time_head.setAlignment(Qt.AlignCenter)
+        lbl_time_head.setFont(font_header)
+        left_layout.addWidget(lbl_time_head)
+
+        sep4 = QFrame()
+        sep4.setFixedHeight(4)
+        sep4.setStyleSheet("background-color: white;")
+        left_layout.addWidget(sep4)
+
+        self.lbl_clock = QLabel("09:00")
+        self.lbl_clock.setAlignment(Qt.AlignCenter)
+        self.lbl_clock.setFont(QFont("Times New Roman", 42, QFont.Bold))
+        left_layout.addWidget(self.lbl_clock, stretch=1)
+
+    def _build_video_area(self):
+        video_layout = QVBoxLayout(self.video_col)
+        video_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.video_label = QLabel()
+        self.video_label.setStyleSheet("background-color: black;")
+        video_layout.addWidget(self.video_label)
+
+        self.video_cap = cv2.VideoCapture("videoBG.mp4")
+        self.timer_video = QTimer(self)
+        self.timer_video.timeout.connect(self._update_video_frame)
+        self.timer_video.start(33)
+
+        overlay_layout = QVBoxLayout(self.video_label)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        overlay_layout.setSpacing(0)
+
+        top_row_layout = QHBoxLayout()
+        top_row_layout.setContentsMargins(0, 0, 0, 0)
+        top_row_layout.setSpacing(0)
+
+        top_strip = QFrame()
+        top_strip.setFixedHeight(70)
+        top_strip.setStyleSheet("background-color: rgba(255, 255, 255, 150); border: none;")
+        
+        strip_layout = QHBoxLayout(top_strip)
+        strip_layout.setContentsMargins(15, 0, 20, 0)
+        strip_layout.setSpacing(15)
+
+        self.lbl_sq_green = ShapeWidget("circle", "#7CE4D5")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "#F9D849")
+        self.lbl_sq_red = ShapeWidget("square", "#D0021B")
+
+        strip_layout.addWidget(self.lbl_sq_green)
+        strip_layout.addWidget(self.lbl_sq_yellow)
+        strip_layout.addWidget(self.lbl_sq_red)
+
+        strip_layout.addStretch()
+
+        lbl_pulse = QLabel("Пульс:")
+        lbl_pulse.setFont(QFont("Times New Roman", 28, QFont.Bold))
+        lbl_pulse.setStyleSheet("color: black; background: transparent;")
+        strip_layout.addWidget(lbl_pulse)
+
+        self.lbl_pulse_overlay = QLabel("--")
+        self.lbl_pulse_overlay.setFont(QFont("Times New Roman", 42, QFont.Bold))
+        self.lbl_pulse_overlay.setStyleSheet("color: #009900; background: transparent;")
+        strip_layout.addWidget(self.lbl_pulse_overlay)
+        
+        strip_layout.addStretch()
+
+        face_frame = QFrame()
+        face_frame.setFixedSize(190, 190)
+        face_frame.setStyleSheet("background-color: white;")
+        
+        face_layout = QVBoxLayout(face_frame)
+        face_layout.setContentsMargins(2, 2, 2, 2)
+        
+        self.lbl_cam_feed = QLabel()
+        self.lbl_cam_feed.setStyleSheet("background-color: black;")
+        face_layout.addWidget(self.lbl_cam_feed)
+
+        top_row_layout.addWidget(top_strip, stretch=1, alignment=Qt.AlignTop)
+        top_row_layout.addWidget(face_frame, alignment=Qt.AlignTop)
+
+        overlay_layout.addLayout(top_row_layout)
+        overlay_layout.addStretch()
 
     def _init_logic(self):
         self.thread_pulse = QThread()
@@ -188,200 +471,6 @@ class ControlForm(QWidget):
         
         self._update_time_ui()
 
-    def _build_header(self, col_w):
-        menu_frame = QFrame(self)
-        menu_frame.setGeometry(0, self.Y_OFFSET, col_w, self.HEADER_H)
-        
-        lbl_menu = QLabel("Меню управления", menu_frame)
-        lbl_menu.setGeometry(0, 15, col_w, 30)
-        
-        btn_w = (col_w - 16) // 3
-        b_style = (
-            "color: white; border-radius: 18px; "
-            "font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
-        )
-
-        btn_instr = QPushButton("Инструкция", menu_frame)
-        btn_instr.setGeometry(0, 65, btn_w, 36)
-        btn_instr.setStyleSheet(
-            f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
-        )
-        btn_instr.clicked.connect(self._go_instruction)
-
-        btn_analysis = QPushButton("Анализ", menu_frame)
-        btn_analysis.setGeometry(btn_w + 8, 65, btn_w, 36)
-        btn_analysis.setStyleSheet(
-            f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
-        )
-        btn_analysis.clicked.connect(self._go_analysis)
-
-        btn_control = QPushButton("Управление", menu_frame)
-        btn_control.setGeometry((btn_w + 8) * 2, 65, col_w - (btn_w + 8) * 2, 36)
-        btn_control.setStyleSheet(f"QPushButton {{ background-color: #44CC29; {b_style} }}")
-
-        logo_frame = QFrame(self)
-        logo_frame.setGeometry(col_w, self.Y_OFFSET, col_w, self.HEADER_H)
-        logo_frame.setStyleSheet("background: #44CC29;")
-        
-        lbl_logo = QLabel("НейроБодр", logo_frame)
-        lbl_logo.setGeometry(0, 10, col_w, 50)
-        
-        logo_line = QFrame(logo_frame)
-        logo_line.setGeometry(int(col_w * 0.2), 60, int(col_w * 0.6), 2)
-        logo_line.setStyleSheet("background-color: white;")
-        
-        lbl_desc = QLabel("Программа для мониторинга\nсостояния водителей", logo_frame)
-        lbl_desc.setGeometry(0, 65, col_w, 50)
-
-        id_frame = QFrame(self)
-        id_frame.setGeometry(col_w * 2, self.Y_OFFSET, self.W - col_w * 2, self.HEADER_H)
-        
-        lbl_id = QLabel("Идентификация", id_frame)
-        lbl_id.setGeometry(0, 5, self.W - col_w * 2, 35)
-        
-        id_sep = QFrame(id_frame)
-        id_sep.setGeometry(0, 45, self.W - col_w * 2, self.GRID_T)
-        id_sep.setStyleSheet("background-color: white;")
-        
-        lbl_op_title = QLabel("Оператор\nопределен:", id_frame)
-        lbl_op_title.setGeometry(20, 55, 110, 60)
-        
-        f_name = self.operator_row.get('first_name', '')
-        l_name = self.operator_row.get('last_name', '')
-        self.lbl_op_name = QLabel(f"{l_name} {f_name}", id_frame)
-        self.lbl_op_name.setGeometry(150, 55, self.W - col_w * 2 - 160, 60)
-
-        for w in [menu_frame, logo_frame, id_frame]:
-            for lbl in w.findChildren(QLabel):
-                if lbl.text() == "Меню управления":
-                    lbl.setFont(QFont("Times New Roman", 18))
-                elif lbl.text() == "НейроБодр":
-                    lbl.setFont(QFont("Times New Roman", 20))
-                elif lbl.text() == "Идентификация":
-                    lbl.setFont(QFont("Times New Roman", 14))
-                elif "Программа" in lbl.text():
-                    lbl.setFont(QFont("Times New Roman", 14))
-                elif lbl.text() == "Оператор\nопределен:":
-                    lbl.setFont(QFont("Times New Roman", 14))
-                else:
-                    lbl.setFont(QFont("Times New Roman", 16))
-                
-                if w == logo_frame:
-                    lbl.setStyleSheet("color: white;")
-                
-                if lbl.text() != "Оператор\nопределен:" and lbl != self.lbl_op_name:
-                    lbl.setAlignment(Qt.AlignCenter)
-                else:
-                    lbl.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-
-    def _build_left_info_panel(self, parent, w):
-        font_label = QFont("Times New Roman", 12)
-        font_val = QFont("Times New Roman", 12, QFont.Bold)
-        font_header = QFont("Times New Roman", 14)
-        font_term = QFont("Consolas", 10)
-
-        y = 10
-        
-        dt_str = utils._now_date_str() + " / " + utils._now_time_str()
-        start_str = self.operator_row.get("software_start_time", utils._now_time_str())
-        
-        info_items = [
-            ("Дата/время:", dt_str, "lbl_dt_val"),
-            ("Время запуска:", start_str, "lbl_start_val"),
-            ("Состояние оператора:", "НОРМА", "lbl_state_val")
-        ]
-
-        for title, val, attr in info_items:
-            lbl_t = QLabel(title, parent)
-            w_label = 160 if "Состояние" in title else 120
-            lbl_t.setGeometry(15, y, w_label, 22)
-            lbl_t.setFont(font_label)
-            
-            lbl_v = QLabel(val, parent)
-            x_val = 180 if "Состояние" in title else 140
-            lbl_v.setGeometry(x_val, y, w - x_val, 22)
-            lbl_v.setFont(font_val)
-            
-            if "Состояние" in title:
-                lbl_v.setStyleSheet("color: #009900;")
-            
-            setattr(self, attr, lbl_v)
-            y += 27
-
-        for head in ["Терминальный блок", "Допустимое время"]:
-            sep1 = QFrame(parent)
-            sep1.setGeometry(0, y, w, 4)
-            sep1.setStyleSheet("background-color: white;")
-            
-            lbl_h = QLabel(head, parent)
-            lbl_h.setGeometry(0, y + 4, w, 30)
-            lbl_h.setAlignment(Qt.AlignCenter)
-            lbl_h.setFont(font_header)
-            
-            sep2 = QFrame(parent)
-            sep2.setGeometry(0, y + 34, w, 4)
-            sep2.setStyleSheet("background-color: white;")
-            y += 41
-
-            if head == "Терминальный блок":
-                term_box = QFrame(parent)
-                term_box.setGeometry(3, y, w - 6, 100)
-                term_box.setStyleSheet("background-color: black;")
-                
-                self.lbl_term_text = QLabel("Состояние нормальное\nПульс --", term_box)
-                self.lbl_term_text.setGeometry(5, 5, w - 20, 90)
-                self.lbl_term_text.setStyleSheet("color: white; background: transparent;")
-                self.lbl_term_text.setFont(font_term)
-                self.lbl_term_text.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-                y += 103
-            else:
-                self.lbl_clock = QLabel("09:00", parent)
-                self.lbl_clock.setGeometry(0, y + 5, w, 55) 
-                self.lbl_clock.setAlignment(Qt.AlignCenter)
-                self.lbl_clock.setFont(QFont("Times New Roman", 42, QFont.Bold))
-
-    def _build_video_area(self, parent, w, h):
-        self.video_label = QLabel(parent)
-        self.video_label.setGeometry(0, 0, w, h)
-        self.video_label.setStyleSheet("background-color: black;")
-
-        self.video_cap = cv2.VideoCapture("videoBG.mp4")
-        self.timer_video = QTimer(self)
-        self.timer_video.timeout.connect(self._update_video_frame)
-        self.timer_video.start(33)
-
-        top_strip = QFrame(self.video_label)
-        top_strip.setGeometry(0, 0, w, 70)
-        top_strip.setStyleSheet("background-color: rgba(255, 255, 255, 150); border: none;")
-
-        self.lbl_sq_green = ShapeWidget("circle", "#7CE4D5", top_strip)
-        self.lbl_sq_green.move(10, 15)
-        
-        self.lbl_sq_yellow = ShapeWidget("triangle", "#F9D849", top_strip)
-        self.lbl_sq_yellow.move(60, 15)
-        
-        self.lbl_sq_red = ShapeWidget("square", "#D0021B", top_strip)
-        self.lbl_sq_red.move(110, 15)
-
-        lbl_pulse = QLabel("Пульс:", top_strip)
-        lbl_pulse.setGeometry(210, 0, 150, 70)
-        lbl_pulse.setFont(QFont("Times New Roman", 28, QFont.Bold))
-        lbl_pulse.setStyleSheet("color: black; background: transparent;")
-
-        self.lbl_pulse_overlay = QLabel("--", top_strip)
-        self.lbl_pulse_overlay.setGeometry(370, 0, 100, 70)
-        self.lbl_pulse_overlay.setFont(QFont("Times New Roman", 42, QFont.Bold))
-        self.lbl_pulse_overlay.setStyleSheet("color: #009900; background: transparent;")
-
-        face_frame = QFrame(self.video_label)
-        face_frame.setGeometry(w - 190, 0, 190, 190)
-        face_frame.setStyleSheet("background-color: white;")
-        
-        self.lbl_cam_feed = QLabel(face_frame)
-        self.lbl_cam_feed.setGeometry(2, 2, 186, 186)
-
     def _update_video_frame(self):
         if not self.video_cap or not self.video_cap.isOpened():
             return
@@ -404,19 +493,6 @@ class ControlForm(QWidget):
             pixmap.scaled(self.video_label.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         )
 
-    def _draw_grid(self, col_w):
-        sep1 = QFrame(self)
-        sep1.setGeometry(0, self.HEADER_H + self.Y_OFFSET, self.W, self.GRID_T)
-        sep1.setStyleSheet("background-color: white;")
-        
-        sep2 = QFrame(self)
-        sep2.setGeometry(col_w - 2, self.Y_OFFSET, self.GRID_T, self.H - self.Y_OFFSET)
-        sep2.setStyleSheet("background-color: white;")
-        
-        sep3 = QFrame(self)
-        sep3.setGeometry(col_w * 2 - 2, self.Y_OFFSET, self.GRID_T, self.HEADER_H)
-        sep3.setStyleSheet("background-color: white;")
-        
     @pyqtSlot(str, str, str)
     def _on_pulse_data(self, status_conn, status_pulse, pulse_str):
         self.current_pulse_val = int(pulse_str) if pulse_str.isdigit() else 0
@@ -502,7 +578,7 @@ class ControlForm(QWidget):
         if self.current_state == "NORMAL":
             self.lbl_term_text.setText(f"Состояние нормальное\nПульс {p_str}")
         elif self.current_state == "WARNING":
-            msg = (f"Состояние оператора выходит за пределы «ВНИМАНИЕ»\n"
+            msg = (f"Состояние оператора выходит за пределы\n«ВНИМАНИЕ»\n"
                    f"Пульс {p_str}\nЗапуск звукового оповещения «ВНИМАНИЕ»")
             self.lbl_term_text.setText(msg)
         else:

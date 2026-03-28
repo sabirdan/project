@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QMessageBox, 
-    QVBoxLayout, QHBoxLayout, QApplication
+    QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QApplication
 )
 
 from instruction_form import InstructionForm
@@ -14,7 +14,6 @@ from utils import (
     _id_str, _draw_to_label_with_dpr, get_cv_face, 
     cv_compare_faces, _opencv_imread_unicode
 )
-
 
 class FaceWorker(QObject):
     finished = pyqtSignal(bool, object)
@@ -29,7 +28,6 @@ class FaceWorker(QObject):
             
         is_same = cv_compare_faces(ref_face_gray, live_face_gray)
         self.finished.emit(is_same, loc)
-
 
 class InfoForm(QWidget):
     sig_process = pyqtSignal(object, object)
@@ -81,11 +79,6 @@ class InfoForm(QWidget):
 
         self.W = 1000
         self.H = 450
-        self.HEADER_H = 120
-        self.SECTION_H = 44
-        self.GRID_T = 4
-        self.BODY_H = self.H - self.HEADER_H
-
         self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Информация оператора")
         self.setStyleSheet("background-color: #D9D9D9;")
@@ -117,10 +110,12 @@ class InfoForm(QWidget):
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
-        self.content_container.setFixedSize(self.W, self.H)
+        content_layout = QVBoxLayout(self.content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
         main_layout.addWidget(self.content_container)
 
-        self._build_ui()
+        self._build_ui(content_layout)
         self._reset_state()
         self._update_status()
 
@@ -156,141 +151,206 @@ class InfoForm(QWidget):
         if hasattr(self, 'presence_timer'):
             self.presence_timer.stop()
 
-    def _build_ui(self):
-        header = QFrame(self.content_container)
-        header.setGeometry(0, 0, self.W, self.HEADER_H)
+    def _build_ui(self, parent_layout):
+        header = QFrame()
+        header.setFixedHeight(120)
         header.setStyleSheet("background-color: #44CC29;")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(0, 10, 0, 10)
+        header_layout.setSpacing(5)
 
-        t1 = QLabel("НейроБодр", header)
-        t1.setGeometry(0, 6, self.W, 62)
+        t1 = QLabel("НейроБодр")
         t1.setFont(QFont("Times New Roman", 40, QFont.Bold))
         t1.setStyleSheet("color: white;")
         t1.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(t1)
 
-        line = QFrame(header)
-        line.setGeometry(int(self.W * 0.16), 76, int(self.W * 0.68), 2)
+        line_layout = QHBoxLayout()
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        line = QFrame()
+        line.setFixedHeight(2)
         line.setStyleSheet("background-color: white;")
+        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line_layout.addWidget(line, stretch=3) 
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        header_layout.addLayout(line_layout)
 
-        t2_text = "Программа для мониторинга состояния водителей"
-        t2 = QLabel(t2_text, header)
-        t2.setGeometry(0, 80, self.W, 30)
+        t2 = QLabel("Программа для мониторинга состояния водителей")
         t2.setFont(QFont("Times New Roman", 16))
         t2.setStyleSheet("color: white;")
         t2.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(t2)
 
-        body = QFrame(self.content_container)
-        body.setGeometry(0, self.HEADER_H, self.W, self.BODY_H)
+        parent_layout.addWidget(header)
 
-        col_w = self.W // 3
-        col3_w = self.W - col_w * 2
-
-        self.left = QFrame(body)
-        self.left.setGeometry(0, 0, col_w, self.BODY_H)
+        body_container = QWidget()
+        body_container.setStyleSheet("background-color: #FFFFFF;")
         
-        self.mid = QFrame(body)
-        self.mid.setGeometry(col_w, 0, col_w, self.BODY_H)
-        
-        self.right = QFrame(body)
-        self.right.setGeometry(col_w * 2, 0, col3_w, self.BODY_H)
+        body_main_layout = QVBoxLayout(body_container)
+        body_main_layout.setContentsMargins(0, 4, 0, 0)
+        body_main_layout.setSpacing(4)
 
-        self._section_header(self.left, "Информация оператора", col_w)
-        self._section_header(self.right, "Информационный блок", col3_w)
+        top_row = QWidget()
+        top_row.setFixedHeight(44)
+        top_layout = QHBoxLayout(top_row)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(4)
 
-        self.btn_identify_dummy = QPushButton("Идентификация", self.mid)
-        btn_x = (col_w - 200) // 2
-        btn_y = (self.SECTION_H - 35) // 2
-        self.btn_identify_dummy.setGeometry(btn_x, btn_y, 200, 35)
+        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
+        mid_header = QFrame(); mid_header.setStyleSheet("background-color: #D9D9D9;")
+        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
+
+        top_layout.addWidget(left_header, stretch=1)
+        top_layout.addWidget(mid_header, stretch=1)
+        top_layout.addWidget(right_header, stretch=1)
+
+        lh_layout = QVBoxLayout(left_header)
+        lbl_reg = QLabel("Информация оператора")
+        lbl_reg.setAlignment(Qt.AlignCenter)
+        lbl_reg.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lh_layout.addWidget(lbl_reg)
+
+        mh_layout = QHBoxLayout(mid_header)
+        self.btn_identify_dummy = QPushButton("Идентификация")
+        self.btn_identify_dummy.setFixedSize(200, 35)
         self.btn_identify_dummy.setStyleSheet(
             "background-color: #2C2C2C; color: #FFFFFF; "
             "border-radius: 6px; font-size: 16px;"
         )
+        mh_layout.addWidget(self.btn_identify_dummy, alignment=Qt.AlignCenter)
 
-        self._build_left_info(col_w)
+        rh_layout = QVBoxLayout(right_header)
+        lbl_info = QLabel("Информационный блок")
+        lbl_info.setAlignment(Qt.AlignCenter)
+        lbl_info.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        rh_layout.addWidget(lbl_info)
 
-        cam_w = col_w - 30
-        cam_h = 220
-        cam_x = (col_w - cam_w) // 2
-        cam_y = self.SECTION_H + (self.BODY_H - self.SECTION_H - cam_h) // 2
+        body_main_layout.addWidget(top_row)
+
+        bottom_row = QWidget()
+        bottom_layout = QHBoxLayout(bottom_row)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(4)
+
+        self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
+        self.mid = QFrame(); self.mid.setStyleSheet("background-color: #D9D9D9;")
+        self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
+
+        bottom_layout.addWidget(self.left, stretch=1)
+        bottom_layout.addWidget(self.mid, stretch=1)
+        bottom_layout.addWidget(self.right, stretch=1)
+
+        body_main_layout.addWidget(bottom_row, stretch=1)
+        parent_layout.addWidget(body_container, stretch=1)
+
+        self._build_left_info()
+
+        mid_layout = QVBoxLayout(self.mid)
+        mid_layout.setContentsMargins(15, 20, 15, 20)
         
-        self.cam_view = QLabel(self.mid)
-        self.cam_view.setGeometry(cam_x, cam_y, cam_w, cam_h)
-        self.cam_view.setStyleSheet("background-color: white;")
+        mid_layout.addStretch()
+        self.cam_view = QLabel()
+        self.cam_view.setFixedSize(300, 220)
         self.cam_view.setAlignment(Qt.AlignCenter)
-
-        right_w = col3_w - 60
-        y0 = self.SECTION_H + 30
+        self.cam_view.setStyleSheet("background-color: white;") 
         
-        self.status_text = QLabel(self.right)
-        self.status_text.setGeometry(30, y0, right_w - 34, 36)
+        cam_layout = QHBoxLayout()
+        cam_layout.addStretch()
+        cam_layout.addWidget(self.cam_view)
+        cam_layout.addStretch()
+        mid_layout.addLayout(cam_layout)
+        mid_layout.addStretch()
+
+        right_layout = QVBoxLayout(self.right)
+        right_layout.setContentsMargins(15, 20, 15, 20)
+        right_layout.setSpacing(10)
+
+        status_layout = QHBoxLayout()
+        self.status_text = QLabel()
         self.status_text.setFont(QFont("Times New Roman", 14))
         
-        self.status_icon = QLabel(self.right)
-        self.status_icon.setGeometry(30 + right_w - 28, y0 + 4, 28, 28)
+        self.status_icon = QLabel()
+        self.status_icon.setFixedSize(28, 28)
+        self.status_icon.setScaledContents(True)
+        
+        status_layout.addWidget(self.status_text)
+        status_layout.addStretch()
+        status_layout.addWidget(self.status_icon)
+        right_layout.addLayout(status_layout)
 
-        self.id_banner = QLabel(self.right)
-        self.id_banner.setGeometry(30, y0 + 60, right_w, 46)
+        self.id_banner = QLabel()
+        self.id_banner.setFixedHeight(46)
         self.id_banner.setFont(QFont("Times New Roman", 18, QFont.Bold))
         self.id_banner.setAlignment(Qt.AlignCenter)
+        right_layout.addWidget(self.id_banner)
 
-        self.info_hint = QLabel(self.right)
-        self.info_hint.setGeometry(30, y0 + 120, right_w, 60)
+        self.info_hint = QLabel()
         self.info_hint.setFont(QFont("Times New Roman", 14))
+        right_layout.addWidget(self.info_hint)
 
-        self.btn_next = QPushButton("Далее", self.right)
-        self.btn_next.setGeometry(col3_w - 130, self.SECTION_H + 203, 100, 34)
+        right_layout.addStretch()
+
+        btn_next_layout = QHBoxLayout()
+        btn_next_layout.addStretch()
+        self.btn_next = QPushButton("Далее")
+        self.btn_next.setFixedSize(100, 34)
+        self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setStyleSheet("""
             QPushButton { 
-                background-color: #2C2C2C; 
-                color: white; 
-                border-radius: 6px; 
-            } 
-            QPushButton:hover { background-color: #44CC29; } 
-            QPushButton:disabled { background-color: #BDBDBD; }
+                background-color: #2C2C2C; color: white; 
+                border-radius: 6px; font-weight: 600; 
+            }
+            QPushButton:hover { background-color: #44CC29; }
+            QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
         """)
         self.btn_next.clicked.connect(self._finish)
+        btn_next_layout.addWidget(self.btn_next)
+        right_layout.addLayout(btn_next_layout)
 
-        for x in (col_w, col_w * 2):
-            sep = QFrame(body)
-            sep.setGeometry(x - 2, 0, 4, self.BODY_H)
-            sep.setStyleSheet("background: white")
+    def _build_left_info(self):
+        left_layout = QVBoxLayout(self.left)
+        left_layout.setContentsMargins(15, 10, 15, 20)
+        left_layout.setSpacing(10)
+
+        profile_layout = QHBoxLayout()
+        self.photo = QLabel()
+        self.photo.setFixedSize(90, 100)
+        self.photo.setStyleSheet("background-color: white;")
+        profile_layout.addWidget(self.photo)
         
-        sep_h = QFrame(body)
-        sep_h.setGeometry(0, self.SECTION_H, self.W, 4)
-        sep_h.setStyleSheet("background: white")
-
-    def _section_header(self, parent, text, w):
-        lbl = QLabel(text, parent)
-        lbl.setGeometry(0, 0, w, self.SECTION_H)
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setFont(QFont("Times New Roman", 14, QFont.Bold))
-
-    def _build_left_info(self, col_w):
-        y = self.SECTION_H + 20
-        self.photo = QLabel(self.left)
-        self.photo.setGeometry(10, y, 90, 100)
-        
-        self.lbl_name = QLabel(self.left)
-        self.lbl_name.setGeometry(118, y + 10, col_w - 136, 60)
+        name_age_layout = QVBoxLayout()
+        self.lbl_name = QLabel()
         self.lbl_name.setFont(QFont("Times New Roman", 18))
         self.lbl_name.setWordWrap(True)
+        name_age_layout.addWidget(self.lbl_name)
         
-        self.lbl_age = QLabel(self.left)
-        self.lbl_age.setGeometry(118, y + 65, col_w - 136, 28)
+        self.lbl_age = QLabel()
         self.lbl_age.setFont(QFont("Times New Roman", 18))
+        name_age_layout.addWidget(self.lbl_age)
+        
+        profile_layout.addLayout(name_age_layout)
+        profile_layout.addStretch()
+        left_layout.addLayout(profile_layout)
+        
+        left_layout.addSpacing(15)
 
-        y2 = y + 115
-        self.lbl_dt = QLabel(self.left)
-        self.lbl_dt.setGeometry(18, y2, col_w - 36, 26)
+        self.lbl_dt = QLabel()
+        self.lbl_dt.setFont(QFont("Times New Roman", 14))
+        left_layout.addWidget(self.lbl_dt)
         
-        self.lbl_start = QLabel(self.left)
-        self.lbl_start.setGeometry(18, y2 + 30, col_w - 36, 26)
+        self.lbl_start = QLabel()
+        self.lbl_start.setFont(QFont("Times New Roman", 14))
+        left_layout.addWidget(self.lbl_start)
         
-        self.lbl_drive = QLabel(self.left)
-        self.lbl_drive.setGeometry(18, y2 + 60, col_w - 36, 26)
+        self.lbl_drive = QLabel()
+        self.lbl_drive.setFont(QFont("Times New Roman", 14))
+        left_layout.addWidget(self.lbl_drive)
         
-        self.lbl_left = QLabel(self.left)
-        self.lbl_left.setGeometry(18, y2 + 90, col_w - 36, 26)
-        
+        self.lbl_left = QLabel()
+        self.lbl_left.setFont(QFont("Times New Roman", 14))
+        left_layout.addWidget(self.lbl_left)
+
+        left_layout.addStretch()
         self._refresh_left_info()
 
     def _refresh_left_info(self):
@@ -317,22 +377,27 @@ class InfoForm(QWidget):
         self.lbl_start.setText(f"Время запуска ПО: <b>{start_time}</b>")
         
         drive = (row.get("drive_duration") or "00:00:00").strip()
-        self.lbl_drive.setText(f"Время в дороге: <b>{drive}</b>")
+        self.lbl_drive.setText(f"Время в дороге: <span style='padding-left: 10px;'><b>{drive}</b></span>")
         
         remaining = 9 * 3600 - _parse_hms_to_seconds(drive)
-        self.lbl_left.setText(f"Оставшееся время: <b>{_seconds_to_hms(remaining)}</b>")
+        self.lbl_left.setText(f"Оставшееся время: <span style='padding-left: 10px;'><b>{_seconds_to_hms(remaining)}</b></span>")
 
         id_img = f"ID_{_id_str(self.op_id)}.jpg"
-        pm = QPixmap(os.path.join(self.ops_dir, id_img))
-        self.photo.setPixmap(
-            pm.scaled(90, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        )
+        img_path = os.path.join(self.ops_dir, id_img)
+        if os.path.exists(img_path):
+            pm = QPixmap(img_path)
+            self.photo.setPixmap(
+                pm.scaled(90, 100, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            )
 
     def _update_status(self):
         ok = self.is_verified and self.is_present
         
         self.status_text.setText("Оператор определен" if ok else "Оператор не определен")
-        self.status_icon.setPixmap(_make_icon(ok))
+        
+        pixmap = _make_icon(ok)
+        if pixmap:
+            self.status_icon.setPixmap(pixmap)
         
         banner_bg = '#13FA23' if ok else '#FA1313'
         self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: black;")

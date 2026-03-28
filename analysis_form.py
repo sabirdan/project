@@ -7,9 +7,8 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QObject
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QLineEdit, 
-    QMessageBox, QVBoxLayout, QHBoxLayout
+    QMessageBox, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
 )
-
 
 class SerialWorker(QObject):
     data_received = pyqtSignal(str, str, str)
@@ -84,7 +83,6 @@ class SerialWorker(QObject):
         if self.ser and self.ser.is_open:
             self.ser.close()
 
-
 class AnalysisForm(QWidget):
     def __init__(self, operator_row: dict = None):
         super().__init__()
@@ -99,11 +97,6 @@ class AnalysisForm(QWidget):
 
         self.W = 1000
         self.H = 450
-        self.HEADER_H = 120
-        self.SECTION_H = 44
-        self.GRID_T = 4
-        self.BODY_H = self.H - self.HEADER_H
-
         self.setFixedSize(self.W, self.H + 34)
         self.setWindowTitle("Анализ оператора")
         self.setStyleSheet("background-color: #D9D9D9;")
@@ -135,10 +128,12 @@ class AnalysisForm(QWidget):
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
-        self.content_container.setFixedSize(self.W, self.H)
+        content_layout = QVBoxLayout(self.content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
         main_layout.addWidget(self.content_container)
 
-        self._build_ui()
+        self._build_ui(content_layout)
         self._fill_data()
 
         self.thread = QThread()
@@ -159,174 +154,295 @@ class AnalysisForm(QWidget):
         if self.operator_row.get("pulse_normal"):
             self.edit_normal.setText(self.operator_row["pulse_normal"])
 
-    def _build_ui(self):
-        col_w = self.W // 3
-        left_w = (self.W // 3) * 2
-        right_w = self.W - left_w
-
-        menu_frame = QFrame(self.content_container)
-        menu_frame.setGeometry(0, 0, col_w, self.HEADER_H)
+    def _build_ui(self, parent_layout):
+        header_container = QWidget()
+        header_container.setFixedHeight(120)
+        header_container.setStyleSheet("background-color: #FFFFFF;")
         
-        lbl_menu = QLabel("Меню управления", menu_frame)
-        lbl_menu.setGeometry(0, 15, col_w, 30)
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(4)
+
+        menu_frame = QFrame(); menu_frame.setStyleSheet("background-color: #D9D9D9;")
+        logo_frame = QFrame(); logo_frame.setStyleSheet("background-color: #44CC29;")
+        id_frame = QFrame(); id_frame.setStyleSheet("background-color: #D9D9D9;")
+
+        header_layout.addWidget(menu_frame, stretch=1)
+        header_layout.addWidget(logo_frame, stretch=1)
+        header_layout.addWidget(id_frame, stretch=1)
+
+        menu_vbox = QVBoxLayout(menu_frame)
+        menu_vbox.setContentsMargins(10, 15, 10, 15)
+        
+        lbl_menu = QLabel("Меню управления")
         lbl_menu.setAlignment(Qt.AlignCenter)
         lbl_menu.setFont(QFont("Times New Roman", 18))
-
-        btn_w = (col_w - 16) // 3
+        menu_vbox.addWidget(lbl_menu)
+        
+        menu_vbox.addStretch()
+        
+        btn_hbox = QHBoxLayout()
         b_style = (
             "color: white; border-radius: 18px; "
             "font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
         )
-
-        self.btn_instr = QPushButton("Инструкция", menu_frame)
-        self.btn_instr.setGeometry(0, 65, btn_w, 36)
+        
+        self.btn_instr = QPushButton("Инструкция")
+        self.btn_instr.setFixedHeight(36)
         self.btn_instr.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
             f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_instr.clicked.connect(self._go_instruction)
-
-        self.btn_analysis = QPushButton("Анализ", menu_frame)
-        self.btn_analysis.setGeometry(btn_w + 8, 65, btn_w, 36)
+        
+        self.btn_analysis = QPushButton("Анализ")
+        self.btn_analysis.setFixedHeight(36)
         self.btn_analysis.setStyleSheet(
             f"QPushButton {{ background-color: #44CC29; {b_style} }} "
             f"QPushButton:hover {{ background-color: #45D44A; }}"
         )
-
-        self.btn_control = QPushButton("Управление", menu_frame)
-        self.btn_control.setGeometry((btn_w + 8) * 2, 65, col_w - (btn_w + 8) * 2, 36)
+        
+        self.btn_control = QPushButton("Управление")
+        self.btn_control.setFixedHeight(36)
         self.btn_control.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
             f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_control.clicked.connect(self._go_control)
-
-        logo_frame = QFrame(self.content_container)
-        logo_frame.setGeometry(col_w, 0, col_w, self.HEADER_H)
-        logo_frame.setStyleSheet("background: #44CC29;")
         
-        lbl_logo = QLabel("НейроБодр", logo_frame)
-        lbl_logo.setGeometry(0, 10, col_w, 50)
+        btn_hbox.addWidget(self.btn_instr)
+        btn_hbox.addWidget(self.btn_analysis)
+        btn_hbox.addWidget(self.btn_control)
+        menu_vbox.addLayout(btn_hbox)
+
+        logo_vbox = QVBoxLayout(logo_frame)
+        logo_vbox.setContentsMargins(0, 10, 0, 10)
+        logo_vbox.setSpacing(5)
+        
+        lbl_logo = QLabel("НейроБодр")
         lbl_logo.setAlignment(Qt.AlignCenter)
-        lbl_logo.setStyleSheet("color: white;")
-        lbl_logo.setFont(QFont("Times New Roman", 20))
-
-        line = QFrame(logo_frame)
-        line.setGeometry(int(col_w * 0.2), 60, int(col_w * 0.6), 2)
+        lbl_logo.setStyleSheet("color: white; font-weight: bold;")
+        lbl_logo.setFont(QFont("Times New Roman", 24))
+        logo_vbox.addWidget(lbl_logo)
+        
+        line_layout = QHBoxLayout()
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        line = QFrame()
+        line.setFixedHeight(2)
         line.setStyleSheet("background-color: white;")
-
-        lbl_desc = QLabel("Программа для мониторинга\nсостояния водителей", logo_frame)
-        lbl_desc.setGeometry(0, 65, col_w, 50)
+        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line_layout.addWidget(line, stretch=3) 
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        logo_vbox.addLayout(line_layout)
+        
+        lbl_desc = QLabel("Программа для мониторинга\nсостояния водителей")
         lbl_desc.setAlignment(Qt.AlignCenter)
         lbl_desc.setStyleSheet("color: white;")
         lbl_desc.setFont(QFont("Times New Roman", 14))
+        logo_vbox.addWidget(lbl_desc)
 
-        id_frame = QFrame(self.content_container)
-        id_frame.setGeometry(col_w * 2, 0, right_w, self.HEADER_H)
+        id_vbox = QVBoxLayout(id_frame)
+        id_vbox.setContentsMargins(0, 0, 0, 0)
+        id_vbox.setSpacing(0)
         
-        lbl_id_title = QLabel("Идентификация", id_frame)
-        lbl_id_title.setGeometry(0, 5, right_w, 35)
+        lbl_id_title = QLabel("Идентификация")
+        lbl_id_title.setFixedHeight(44)
         lbl_id_title.setAlignment(Qt.AlignCenter)
         lbl_id_title.setFont(QFont("Times New Roman", 14))
-
-        id_sep = QFrame(id_frame)
-        id_sep.setGeometry(0, 45, right_w, self.GRID_T)
+        id_vbox.addWidget(lbl_id_title)
+        
+        id_sep = QFrame()
+        id_sep.setFixedHeight(4)
         id_sep.setStyleSheet("background-color: white;")
-
-        lbl_op_status = QLabel("Оператор\nопределен:", id_frame)
-        lbl_op_status.setGeometry(20, 55, 110, 60)
+        id_vbox.addWidget(id_sep)
+        
+        id_data_hbox = QHBoxLayout()
+        id_data_hbox.setContentsMargins(20, 10, 20, 10)
+        
+        lbl_op_status = QLabel("Оператор\nопределен:")
         lbl_op_status.setFont(QFont("Times New Roman", 14))
         
-        self.lbl_op_name = QLabel("", id_frame)
-        self.lbl_op_name.setGeometry(150, 55, right_w - 160, 60)
+        self.lbl_op_name = QLabel("")
         self.lbl_op_name.setFont(QFont("Times New Roman", 16))
-
-        self._section_header(self.content_container, "Анализ оператора", 0, self.HEADER_H, left_w)
-        self._build_analysis_content(QFrame(self.content_container), left_w)
-
-        self._section_header(self.content_container, "Вид подключения", left_w, self.HEADER_H, right_w)
-        self._build_connection_content(QFrame(self.content_container), left_w, right_w)
-
-        self._draw_grid(col_w, left_w)
-
-    def _section_header(self, parent, text, x, y, w):
-        h = QFrame(parent)
-        h.setGeometry(x, y, w, self.SECTION_H)
-        lbl = QLabel(text, h)
-        lbl.setGeometry(0, 0, w, self.SECTION_H)
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setFont(QFont("Times New Roman", 14))
-
-    def _build_analysis_content(self, parent, w):
-        parent.setGeometry(0, self.HEADER_H + self.SECTION_H, w, self.BODY_H - self.SECTION_H)
         
-        lbl_p1 = QLabel("Укажите порог вашего пульса", parent)
-        lbl_p1.setGeometry(20, 15, 280, 35)
+        id_data_hbox.addWidget(lbl_op_status)
+        id_data_hbox.addStretch()
+        id_data_hbox.addWidget(self.lbl_op_name)
+        
+        id_vbox.addLayout(id_data_hbox)
+
+        parent_layout.addWidget(header_container)
+
+        body_container = QWidget()
+        body_container.setStyleSheet("background-color: #FFFFFF;")
+        
+        body_main_layout = QVBoxLayout(body_container)
+        body_main_layout.setContentsMargins(0, 4, 0, 0)
+        body_main_layout.setSpacing(4)
+
+        top_row = QWidget()
+        top_row.setFixedHeight(44)
+        top_layout = QHBoxLayout(top_row)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(4)
+
+        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
+        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
+
+        top_layout.addWidget(left_header, stretch=2)
+        top_layout.addWidget(right_header, stretch=1)
+
+        lh_layout = QVBoxLayout(left_header)
+        lbl_analysis = QLabel("Анализ оператора")
+        lbl_analysis.setAlignment(Qt.AlignCenter)
+        lbl_analysis.setFont(QFont("Times New Roman", 14))
+        lh_layout.addWidget(lbl_analysis)
+
+        rh_layout = QVBoxLayout(right_header)
+        lbl_conn = QLabel("Вид подключения")
+        lbl_conn.setAlignment(Qt.AlignCenter)
+        lbl_conn.setFont(QFont("Times New Roman", 14))
+        rh_layout.addWidget(lbl_conn)
+
+        body_main_layout.addWidget(top_row)
+
+        bottom_row = QWidget()
+        bottom_layout = QHBoxLayout(bottom_row)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(4)
+
+        self.left_col = QFrame(); self.left_col.setStyleSheet("background-color: #D9D9D9;")
+        self.right_col = QFrame(); self.right_col.setStyleSheet("background-color: #D9D9D9;")
+
+        bottom_layout.addWidget(self.left_col, stretch=2)
+        bottom_layout.addWidget(self.right_col, stretch=1)
+
+        body_main_layout.addWidget(bottom_row, stretch=1)
+        parent_layout.addWidget(body_container, stretch=1)
+
+        self._build_analysis_content()
+        self._build_connection_content()
+
+    def _build_analysis_content(self):
+        left_layout = QVBoxLayout(self.left_col)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(0) 
+        
+        inputs_frame = QWidget()
+        inputs_layout = QHBoxLayout(inputs_frame)
+        inputs_layout.setContentsMargins(20, 15, 20, 15)
+        
+        fields_vbox = QVBoxLayout()
+        fields_vbox.setSpacing(10)
+        
+        row1 = QHBoxLayout()
+        lbl_p1 = QLabel("Укажите порог вашего пульса")
+        lbl_p1.setFixedWidth(280)
         lbl_p1.setFont(QFont("Times New Roman", 12))
-        
-        self.edit_threshold = QLineEdit(parent)
-        self.edit_threshold.setGeometry(305, 15, 200, 35)
-        self.edit_threshold.setStyleSheet("background: white; padding-left: 5px;")
+        self.edit_threshold = QLineEdit()
+        self.edit_threshold.setFixedSize(200, 35)
+        self.edit_threshold.setStyleSheet("background: white; padding-left: 5px; border: none;")
         self.edit_threshold.setFont(QFont("Times New Roman", 14))
+        row1.addWidget(lbl_p1)
+        row1.addWidget(self.edit_threshold)
+        row1.addStretch()
         
-        lbl_p2 = QLabel("Укажите норму вашего пульса", parent)
-        lbl_p2.setGeometry(20, 53, 280, 35)
+        row2 = QHBoxLayout()
+        lbl_p2 = QLabel("Укажите норму вашего пульса")
+        lbl_p2.setFixedWidth(280)
         lbl_p2.setFont(QFont("Times New Roman", 12))
-        
-        self.edit_normal = QLineEdit(parent)
-        self.edit_normal.setGeometry(305, 53, 200, 35)
-        self.edit_normal.setStyleSheet("background: white; padding-left: 5px;")
+        self.edit_normal = QLineEdit()
+        self.edit_normal.setFixedSize(200, 35)
+        self.edit_normal.setStyleSheet("background: white; padding-left: 5px; border: none;")
         self.edit_normal.setFont(QFont("Times New Roman", 14))
-
-        btn_save = QPushButton("Записать", parent)
-        btn_save.setGeometry(525, 30, 110, 40) 
+        row2.addWidget(lbl_p2)
+        row2.addWidget(self.edit_normal)
+        row2.addStretch()
+        
+        fields_vbox.addLayout(row1)
+        fields_vbox.addLayout(row2)
+        
+        inputs_layout.addLayout(fields_vbox)
+        
+        btn_save = QPushButton("Записать")
+        btn_save.setFixedSize(110, 40)
         btn_save.setStyleSheet(
             "QPushButton { background: #2C2C2C; color: white; border-radius: 6px; "
             "font-weight: bold; font-size: 14px; } "
             "QPushButton:hover { background: #44CC29; }"
         )
         btn_save.clicked.connect(self._save_to_csv)
+        inputs_layout.addWidget(btn_save, alignment=Qt.AlignVCenter | Qt.AlignRight)
+        
+        left_layout.addWidget(inputs_frame)
 
-        line_sep = QFrame(parent)
-        line_sep.setGeometry(0, 95, w, self.GRID_T)
-        line_sep.setStyleSheet("background-color: white;")
-
-        lbl_term_title = QLabel("Терминальный блок информации", parent)
-        lbl_term_title.setGeometry(0, 105, w, 30)
+        line_sep = QFrame()
+        line_sep.setFixedHeight(4)
+        line_sep.setStyleSheet("background-color: white; border: none;")
+        left_layout.addWidget(line_sep)
+        
+        term_header_frame = QWidget()
+        term_header_frame.setFixedHeight(44)
+        term_header_layout = QVBoxLayout(term_header_frame)
+        term_header_layout.setContentsMargins(0,0,0,0)
+        
+        lbl_term_title = QLabel("Терминальный блок информации")
         lbl_term_title.setAlignment(Qt.AlignCenter)
         lbl_term_title.setFont(QFont("Times New Roman", 14))
-
-        term_box = QFrame(parent)
-        term_box.setGeometry(20, 140, w - 40, 125)
+        term_header_layout.addWidget(lbl_term_title)
+        
+        left_layout.addWidget(term_header_frame)
+        
+        term_content_frame = QWidget()
+        term_content_layout = QVBoxLayout(term_content_frame)
+        term_content_layout.setContentsMargins(20, 0, 20, 20)
+        
+        term_box = QFrame()
         term_box.setStyleSheet("background-color: black;")
-
-        self.lbl_term = QLabel("", term_box)
-        self.lbl_term.setGeometry(20, 10, w - 80, 105)
+        term_box_layout = QVBoxLayout(term_box)
+        
+        self.lbl_term = QLabel("")
         self.lbl_term.setStyleSheet("color: white; background: transparent;")
         self.lbl_term.setFont(QFont("Times New Roman", 11))
+        self.lbl_term.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        term_box_layout.addWidget(self.lbl_term)
+        
+        term_content_layout.addWidget(term_box)
+        left_layout.addWidget(term_content_frame, stretch=1)
+        
         self._update_terminal_ui("WAIT", "WAIT", "--")
 
-    def _build_connection_content(self, parent, x_offset, w):
-        parent.setGeometry(x_offset, self.HEADER_H + self.SECTION_H, w, self.BODY_H - self.SECTION_H)
-        block_w = (w - 70) // 2 
+    def _build_connection_content(self):
+        right_layout = QVBoxLayout(self.right_col)
+        right_layout.setContentsMargins(20, 20, 20, 20)
         
-        for i, img_name in enumerate(["hand1.png", "hand2.png"]):
-            box = QLabel(parent)
-            box.setGeometry(25 + (block_w + 20) * i, 20, block_w, 150)
+        images_hbox = QHBoxLayout()
+        images_hbox.setSpacing(20)
+        
+        for img_name in ["hand1.png", "hand2.png"]:
+            box = QLabel()
+            box.setStyleSheet("background-color: white;")
             img_path = f"assets/{img_name}"
-            box.setPixmap(QPixmap(img_path).scaled(block_w, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            if os.path.exists(img_path):
+                 box.setPixmap(QPixmap(img_path).scaled(100, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             box.setAlignment(Qt.AlignCenter)
-
-        lbl_hint = QLabel(
-            "Наклеить электроды как показано\nна рисунке и подключить контакты", 
-            parent
-        )
-        lbl_hint.setGeometry(25, 180, w - 50, 50)
+            images_hbox.addWidget(box)
+            
+        right_layout.addLayout(images_hbox)
+        
+        right_layout.addSpacing(15)
+        
+        lbl_hint = QLabel("Наклеить электроды как показано\nна рисунке и подключить контакты")
         lbl_hint.setWordWrap(True)
         lbl_hint.setFont(QFont("Times New Roman", 11))
-
-        self.btn_next = QPushButton("Далее", parent)
-        self.btn_next.setGeometry(w - 145, 230, 110, 36)
+        right_layout.addWidget(lbl_hint)
+        
+        right_layout.addStretch()
+        
+        btn_next_layout = QHBoxLayout()
+        btn_next_layout.addStretch()
+        self.btn_next = QPushButton("Далее")
+        self.btn_next.setFixedSize(110, 36)
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setStyleSheet(
             "QPushButton { background: #2C2C2C; color: white; border-radius: 6px; "
@@ -334,21 +450,9 @@ class AnalysisForm(QWidget):
             "QPushButton:hover { background: #44CC29; }"
         )
         self.btn_next.clicked.connect(self._go_control)
-
-    def _draw_grid(self, col_w, left_w):
-        for x in [col_w, col_w * 2]:
-            sep = QFrame(self.content_container)
-            sep.setGeometry(x - 2, 0, 4, self.HEADER_H)
-            sep.setStyleSheet("background-color: white;")
-            
-        for y in [self.HEADER_H, self.HEADER_H + self.SECTION_H]:
-            sep = QFrame(self.content_container)
-            sep.setGeometry(0, y, self.W, 4)
-            sep.setStyleSheet("background-color: white;")
-            
-        sep_v = QFrame(self.content_container)
-        sep_v.setGeometry(left_w - 2, self.HEADER_H, 4, self.BODY_H)
-        sep_v.setStyleSheet("background-color: white;")
+        btn_next_layout.addWidget(self.btn_next)
+        
+        right_layout.addLayout(btn_next_layout)
 
     def _update_terminal_ui(self, status_conn, status_pulse, current_pulse):
         txt_conn = "OK" if status_conn == "OK" else "FAIL"

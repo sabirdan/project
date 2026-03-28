@@ -11,10 +11,9 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QApplication, 
-    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox
+    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox, QSpacerItem, QSizePolicy, QGridLayout
 )
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
-
 
 class ShapeWidget(QWidget):
     def __init__(self, shape_type, color, parent=None):
@@ -47,9 +46,7 @@ class ShapeWidget(QWidget):
         elif self.shape_type == "square":
             painter.drawRect(0, 0, self.width(), self.height())
 
-
 class AuthScreen(QWidget):
-    
     def __init__(self, remote_form):
         super().__init__()
         self.remote_form = remote_form
@@ -153,19 +150,16 @@ class AuthScreen(QWidget):
 
     def position_over_terminal(self, parent):
         pgp = parent.mapToGlobal(QPoint(0, 0))
-        col_w = parent.W // 3
         
-        abs_x = pgp.x() + col_w
-        abs_y = pgp.y() + parent.FRAME_H + parent.HEADER_H + parent.SECTION_H
+        abs_x = pgp.x() + (parent.W // 3)
+        abs_y = pgp.y() + 34 + 120 + 44 
         
-        target_x = abs_x + (col_w - self.width()) // 2
-        target_y = abs_y + (parent.BODY_H - parent.SECTION_H - self.height()) // 2
+        target_x = abs_x + ((parent.W // 3) - self.width()) // 2
+        target_y = abs_y + (parent.BODY_H - 44 - self.height()) // 2
         
         self.move(target_x, target_y)
 
-
 class RemoteForm(QWidget):
-    
     def __init__(self):
         super().__init__()
         
@@ -173,7 +167,6 @@ class RemoteForm(QWidget):
         self.FRAME_H = 34
         self.HEADER_H = 120
         self.SECTION_H = 44
-        self.GRID_T = 4
         self.BODY_H = self.H - self.HEADER_H
 
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -257,6 +250,24 @@ class RemoteForm(QWidget):
         )
         self.timer_monitor.start(1000)
 
+    def _refresh_left_info(self):
+        self.lbl_name.setText("Фамилия Имя Отчество")
+        self.lbl_age.setText("Возраст")
+        self.lbl_dt.setText("Дата/время: <b>00.00.0000 / 00:00:00</b>")
+        self.lbl_start.setText("Время запуска ПО: <b>00:00:00</b>")
+        self.lbl_drive.setText("Время в дороге: <b>00:00:00</b>")
+        self.lbl_left.setText("Оставшееся время: <b>00:00:00</b>")
+        self.lbl_status.setText("Состояние: ")
+
+        default_pix_path = os.path.join(self.base_dir, "assets", "user.png")
+        pix = QPixmap(default_pix_path)
+        if not pix.isNull():
+            self.photo.setPixmap(
+                pix.scaled(self.photo.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            )
+        else:
+            self.photo.setText("Нет фото")
+
     def _update_monitor_data(self):
         pulse = 0
         status = ""
@@ -313,7 +324,7 @@ class RemoteForm(QWidget):
         self.lbl_pulse_val.setText(str(pulse) if pulse > 0 else "--")
         
         border_blue = "border: 2px solid #0000FF;"
-        c_green, c_yellow, c_red, c_off = "#07D40B", "#FFFC00", "#D0021B", "#D0CECF"
+        c_green, c_yellow, c_red, c_off = "#07D40B", "#FFFC00", "#D0021B", "#ACA2A1"
 
         if self.current_status == "NORMAL":
             self.player_warning.stop()
@@ -382,7 +393,7 @@ class RemoteForm(QWidget):
         self.player_alarm.stop()
 
         for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
-            sq.set_color("white")
+            sq.set_color("#ACA2A1")
             sq.setStyleSheet("background-color: white; border: 2px solid #0000FF;")
 
         self._refresh_left_info()
@@ -395,13 +406,17 @@ class RemoteForm(QWidget):
         self.auth_window.show()
 
     def _build_ui(self):
-        top_grey = QWidget(self)
-        top_grey.setGeometry(0, 0, self.W, 30)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        top_grey = QWidget()
+        top_grey.setFixedHeight(30)
         top_layout = QHBoxLayout(top_grey)
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.addStretch(1)
 
-        self.btn_close = QPushButton("X", top_grey)
+        self.btn_close = QPushButton("X")
         self.btn_close.setFixedSize(30, 30)
         self.btn_close.setCursor(Qt.PointingHandCursor)
         self.btn_close.setStyleSheet(
@@ -409,74 +424,215 @@ class RemoteForm(QWidget):
         )
         self.btn_close.clicked.connect(self.close)
         top_layout.addWidget(self.btn_close)
+        main_layout.addWidget(top_grey)
 
-        top_line = QFrame(self)
-        top_line.setGeometry(0, 30, self.W, 4)
+        top_line = QFrame()
+        top_line.setFixedHeight(4)
         top_line.setStyleSheet("background-color: #FFFFFF;")
+        main_layout.addWidget(top_line)
 
-        header = QFrame(self)
-        header.setGeometry(0, self.FRAME_H, self.W, self.HEADER_H)
+        header = QFrame()
+        header.setFixedHeight(120)
         header.setStyleSheet("background-color: #44CC29;")
-
-        title_main = QLabel("НейроБодр", header)
-        title_main.setGeometry(0, 6, self.W, 62)
         
-        logo_line = QFrame(header)
-        logo_line.setGeometry(int(self.W * 0.16), 76, int(self.W * 0.68), 2)
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(0, 10, 0, 10)
+        header_layout.setSpacing(5)
+
+        title_main = QLabel("НейроБодр")
+        title_main.setAlignment(Qt.AlignCenter)
+        title_main.setStyleSheet("color: white;")
+        title_main.setFont(QFont("Times New Roman", 40, QFont.Bold))
+        header_layout.addWidget(title_main)
+        
+        line_layout = QHBoxLayout()
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        logo_line = QFrame()
+        logo_line.setFixedHeight(2)
         logo_line.setStyleSheet("background-color: white;")
+        logo_line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line_layout.addWidget(logo_line, stretch=3)
+        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        header_layout.addLayout(line_layout)
         
-        title_sub = QLabel("Программа для мониторинга состояния водителей", header)
-        title_sub.setGeometry(0, 80, self.W, 30)
-
-        for lbl in header.findChildren(QLabel):
-            lbl.setAlignment(Qt.AlignCenter)
-            lbl.setStyleSheet("color: white;")
-            is_main = "НейроБодр" in lbl.text()
-            lbl.setFont(QFont("Times New Roman", 40 if is_main else 16, 
-                        QFont.Bold if is_main else QFont.Normal))
-
-        body = QFrame(self)
-        body.setGeometry(0, self.FRAME_H + self.HEADER_H, self.W, self.BODY_H)
-        col_w = self.W // 3
+        title_sub = QLabel("Программа для мониторинга состояния водителей")
+        title_sub.setAlignment(Qt.AlignCenter)
+        title_sub.setStyleSheet("color: white;")
+        title_sub.setFont(QFont("Times New Roman", 16))
+        header_layout.addWidget(title_sub)
         
-        self.left = QFrame(body)
-        self.left.setGeometry(0, 0, col_w, self.BODY_H)
-        self.left.setStyleSheet("background-color: #D9D9D9;")
+        main_layout.addWidget(header)
 
-        self.mid = QFrame(body)
-        self.mid.setGeometry(col_w, 0, col_w, self.BODY_H)
-        self.mid.setStyleSheet("background-color: black;")
+        header_bottom_line = QFrame()
+        header_bottom_line.setFixedHeight(4)
+        header_bottom_line.setStyleSheet("background-color: #FFFFFF;")
+        main_layout.addWidget(header_bottom_line)
 
-        self.right = QFrame(body)
-        self.right.setGeometry(col_w * 2, 0, self.W - col_w * 2, self.BODY_H)
-        self.right.setStyleSheet("background-color: #D9D9D9;")
+        body_container = QWidget()
+        body_container.setStyleSheet("background-color: #FFFFFF;")
+        
+        body_main_layout = QVBoxLayout(body_container)
+        body_main_layout.setContentsMargins(0, 0, 0, 0)
+        body_main_layout.setSpacing(4)
 
-        self._section_header(self.left, "Информация оператора", col_w)
-        self._section_header(self.mid, "Терминальный блок", col_w)
-        self._section_header(self.right, "Блок индикации", self.W - col_w * 2)
+        top_row = QWidget()
+        top_row.setFixedHeight(44)
+        top_layout = QHBoxLayout(top_row)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(4)
 
-        self._build_left_info(col_w)
+        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
+        mid_header = QFrame(); mid_header.setStyleSheet("background-color: #D9D9D9;")
+        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
 
-        self.mid_info = QLabel("", self.mid)
-        self.mid_info.setGeometry(20, self.SECTION_H + 20, col_w - 40, 150)
-        self.mid_info.setStyleSheet("color: white;")
+        top_layout.addWidget(left_header, stretch=1)
+        top_layout.addWidget(mid_header, stretch=1)
+        top_layout.addWidget(right_header, stretch=1)
+
+        lh_layout = QVBoxLayout(left_header)
+        lbl_info = QLabel("Информация оператора")
+        lbl_info.setAlignment(Qt.AlignCenter)
+        lbl_info.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lh_layout.addWidget(lbl_info)
+
+        mh_layout = QVBoxLayout(mid_header)
+        lbl_term = QLabel("Терминальный блок")
+        lbl_term.setAlignment(Qt.AlignCenter)
+        lbl_term.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        mh_layout.addWidget(lbl_term)
+        
+        rh_layout = QVBoxLayout(right_header)
+        lbl_ind = QLabel("Блок индикации")
+        lbl_ind.setAlignment(Qt.AlignCenter)
+        lbl_ind.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        rh_layout.addWidget(lbl_ind)
+
+        body_main_layout.addWidget(top_row)
+
+        bottom_row = QWidget()
+        bottom_layout = QHBoxLayout(bottom_row)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(4)
+
+        self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
+        self.mid = QFrame(); self.mid.setStyleSheet("background-color: black;")
+        self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
+
+        bottom_layout.addWidget(self.left, stretch=1)
+        bottom_layout.addWidget(self.mid, stretch=1)
+        bottom_layout.addWidget(self.right, stretch=1)
+
+        body_main_layout.addWidget(bottom_row, stretch=1)
+        main_layout.addWidget(body_container, stretch=1)
+
+        self._build_left_info()
+        self._build_mid_info()
+        self._build_right_info()
+
+    def _build_left_info(self):
+        left_layout = QVBoxLayout(self.left)
+        left_layout.setContentsMargins(15, 10, 15, 10)
+        left_layout.setSpacing(5)
+
+        profile_layout = QHBoxLayout()
+        self.photo = QLabel()
+        self.photo.setFixedSize(90, 100)
+        self.photo.setStyleSheet("background-color: white;")
+        self.photo.setAlignment(Qt.AlignCenter)
+        profile_layout.addWidget(self.photo)
+        
+        name_age_layout = QVBoxLayout()
+        self.lbl_name = QLabel("Фамилия Имя Отчество")
+        self.lbl_name.setFont(QFont("Times New Roman", 16))
+        self.lbl_name.setWordWrap(True)
+        name_age_layout.addWidget(self.lbl_name)
+        
+        self.lbl_age = QLabel("Возраст")
+        self.lbl_age.setFont(QFont("Times New Roman", 16))
+        name_age_layout.addWidget(self.lbl_age)
+        
+        profile_layout.addLayout(name_age_layout)
+        profile_layout.addStretch()
+        left_layout.addLayout(profile_layout)
+        
+        left_layout.addSpacing(15)
+
+        font_labels = QFont("Times New Roman", 14)
+        
+        self.lbl_dt = QLabel("Дата/время: <b>00.00.0000 / 00:00:00</b>")
+        self.lbl_dt.setFont(font_labels)
+        left_layout.addWidget(self.lbl_dt)
+        
+        self.lbl_start = QLabel("Время запуска ПО: <b>00:00:00</b>")
+        self.lbl_start.setFont(font_labels)
+        left_layout.addWidget(self.lbl_start)
+        
+        self.lbl_drive = QLabel("Время в дороге: <b>00:00:00</b>")
+        self.lbl_drive.setFont(font_labels)
+        left_layout.addWidget(self.lbl_drive)
+        
+        self.lbl_left = QLabel("Оставшееся время: <b>00:00:00</b>")
+        self.lbl_left.setFont(font_labels)
+        left_layout.addWidget(self.lbl_left)
+        
+        self.lbl_status = QLabel("Состояние: ")
+        self.lbl_status.setFont(font_labels)
+        left_layout.addWidget(self.lbl_status)
+
+        left_layout.addStretch()
+        self._refresh_left_info()
+        
+    def _build_mid_info(self):
+        mid_layout = QVBoxLayout(self.mid)
+        mid_layout.setContentsMargins(20, 20, 20, 20)
+        
+        self.mid_info = QLabel("")
+        self.mid_info.setStyleSheet("color: white; background: transparent;")
         self.mid_info.setFont(QFont("Consolas", 11))
         self.mid_info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.mid_info.setWordWrap(True)
-
-        lbl_pulse_title = QLabel("Пульс:", self.right)
-        lbl_pulse_title.setGeometry(20, self.SECTION_H + 20, 120, 50)
-        lbl_pulse_title.setFont(QFont("Times New Roman", 28, QFont.Bold))
-
-        self._draw_shapes(self.right)
         
-        self.lbl_pulse_val = QLabel("", self.right)
-        self.lbl_pulse_val.setGeometry(150, self.SECTION_H + 15, 100, 60)
+        mid_layout.addWidget(self.mid_info)
+
+    def _build_right_info(self):
+        right_layout = QVBoxLayout(self.right)
+        right_layout.setContentsMargins(15, 20, 15, 20)
+        
+        pulse_layout = QHBoxLayout()
+        lbl_pulse_title = QLabel("Пульс:")
+        lbl_pulse_title.setFont(QFont("Times New Roman", 28, QFont.Bold))
+        
+        self.lbl_pulse_val = QLabel("--")
         self.lbl_pulse_val.setStyleSheet("color: #D32F2F;")
         self.lbl_pulse_val.setFont(QFont("Times New Roman", 42, QFont.Bold))
-
-        self.btn_next = QPushButton("Стоп программа", self.right)
-        self.btn_next.setGeometry(self.W - col_w * 2 - 150, self.BODY_H - 60, 130, 40)
+        
+        pulse_layout.addWidget(lbl_pulse_title)
+        pulse_layout.addSpacing(10)
+        pulse_layout.addWidget(self.lbl_pulse_val)
+        pulse_layout.addStretch()
+        
+        right_layout.addLayout(pulse_layout)
+        right_layout.addStretch()
+        
+        shapes_layout = QHBoxLayout()
+        shapes_layout.setSpacing(10)
+        self.lbl_sq_green = ShapeWidget("circle", "#ACA2A1")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "#ACA2A1")
+        self.lbl_sq_red = ShapeWidget("square", "#ACA2A1")
+        
+        shapes_layout.addStretch()
+        shapes_layout.addWidget(self.lbl_sq_green)
+        shapes_layout.addWidget(self.lbl_sq_yellow)
+        shapes_layout.addWidget(self.lbl_sq_red)
+        shapes_layout.addStretch()
+        
+        right_layout.addLayout(shapes_layout)
+        right_layout.addStretch()
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        self.btn_next = QPushButton("Стоп программа")
+        self.btn_next.setFixedSize(130, 40)
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setStyleSheet("""
             QPushButton { 
@@ -489,89 +645,9 @@ class RemoteForm(QWidget):
             QPushButton:hover { background-color: #44CC29; }
         """)
         self.btn_next.clicked.connect(self.stop_program)
-
-        for x in (col_w, col_w * 2):
-            v_sep = QFrame(body)
-            v_sep.setGeometry(x - 2, 0, 4, self.BODY_H)
-            v_sep.setStyleSheet("background-color: #FFFFFF;")
-            v_sep.raise_()
-            
-        h_sep = QFrame(body)
-        h_sep.setGeometry(0, self.SECTION_H, self.W, 4)
-        h_sep.setStyleSheet("background-color: #FFFFFF;")
-        h_sep.raise_()
-
-    def _section_header(self, parent, text, w):
-        container = QFrame(parent)
-        container.setGeometry(0, 0, w, self.SECTION_H)
-        container.setStyleSheet("background-color: #D9D9D9;")
+        btn_layout.addWidget(self.btn_next)
         
-        lbl = QLabel(text, container)
-        lbl.setGeometry(0, 0, w, self.SECTION_H)
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setFont(QFont("Times New Roman", 14, QFont.Bold))
-
-    def _build_left_info(self, col_w):
-        y_start = self.SECTION_H + 20
-        text_x = 118
-        
-        self.photo = QLabel(self.left)
-        self.photo.setGeometry(10, y_start, 90, 100)
-        self.photo.setStyleSheet("background-color: white;")
-        self.photo.setAlignment(Qt.AlignCenter)
-
-        self.lbl_name = QLabel(self.left)
-        self.lbl_name.setGeometry(text_x, y_start + 5, col_w - text_x - 18, 70)
-        self.lbl_name.setFont(QFont("Times New Roman", 16))
-        self.lbl_name.setWordWrap(True)
-
-        self.lbl_age = QLabel(self.left)
-        self.lbl_age.setGeometry(text_x, y_start + 70, col_w - text_x - 18, 28)
-        self.lbl_age.setFont(QFont("Times New Roman", 16))
-
-        y_labels = y_start + 105
-        labels_map = ["lbl_dt", "lbl_start", "lbl_drive", "lbl_left", "lbl_status"]
-        
-        for i, attr in enumerate(labels_map):
-            lbl = QLabel(self.left)
-            lbl.setGeometry(18, y_labels + 30 * i, col_w - 36, 26)
-            lbl.setFont(QFont("Times New Roman", 14))
-            setattr(self, attr, lbl)
-
-        self._refresh_left_info()
-
-    def _refresh_left_info(self):
-        self.lbl_name.setText("Фамилия Имя Отчество")
-        self.lbl_age.setText("Возраст")
-        self.lbl_dt.setText("Дата/время: <b>00.00.0000 / 00:00:00</b>")
-        self.lbl_start.setText("Время запуска ПО: <b>00:00:00</b>")
-        self.lbl_drive.setText("Время в дороге: <b>00:00:00</b>")
-        self.lbl_left.setText("Оставшееся время: <b>00:00:00</b>")
-        self.lbl_status.setText("Состояние: ")
-
-        default_pix_path = os.path.join(self.base_dir, "assets", "user.png")
-        pix = QPixmap(default_pix_path)
-        if not pix.isNull():
-            self.photo.setPixmap(
-                pix.scaled(self.photo.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-            )
-        else:
-            self.photo.setText("Нет фото")
-
-    def _draw_shapes(self, parent):
-        rect = parent.geometry()
-        cx = rect.width() // 2
-        cy = rect.height() // 2 + 20
-        start_x = cx - 130
-
-        self.lbl_sq_green = ShapeWidget("circle", "white", parent)
-        self.lbl_sq_green.move(start_x, cy - 40)
-        
-        self.lbl_sq_yellow = ShapeWidget("triangle", "white", parent)
-        self.lbl_sq_yellow.move(start_x + 90, cy - 40)
-        
-        self.lbl_sq_red = ShapeWidget("square", "white", parent)
-        self.lbl_sq_red.move(start_x + 180, cy - 40)
+        right_layout.addLayout(btn_layout)
 
 
 if __name__ == "__main__":
