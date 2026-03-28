@@ -117,14 +117,12 @@ class InstructionForm(QWidget):
         self.btn_instr.setFixedHeight(36)
         self.btn_instr.setStyleSheet(
             f"QPushButton {{ background-color: #44CC29; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #45D44A; }}"
         )
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
         self.btn_analysis.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_analysis.clicked.connect(self._open_analysis)
         
@@ -132,7 +130,6 @@ class InstructionForm(QWidget):
         self.btn_control.setFixedHeight(36)
         self.btn_control.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_control.clicked.connect(self._open_control)
         
@@ -268,13 +265,13 @@ class InstructionForm(QWidget):
                 "от нормы или повышение на 20%, но ниже критического порога.\n"
                 "Веки закрыты дольше 4 секунд (микросон). Наклон вперед/вбок\n"
                 "(эффект 'кивающей головы')", 
-                "triangle", "#F9D849"
+                "triangle", "#FFD700"
             ),
             (
                 "Красный индикатор на видео означает, 'Критическое' состояние:\n"
                 "ЧСС ниже на 30% от нормы или больше критического порога.\n"
                 "Наклон головы вперед/вбок (дольше 7 секунд) веки закрыты", 
-                "square", "#D0021B"
+                "square", "#FF0000"
             )
         ]
 

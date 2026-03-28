@@ -215,7 +215,7 @@ class RegistrationForm(QWidget):
         self.cam_view = QLabel()
         self.cam_view.setFixedSize(300, 220)
         self.cam_view.setAlignment(Qt.AlignCenter)
-        self.cam_view.setStyleSheet("background-color: #E0E0E0;") 
+        self.cam_view.setStyleSheet("background-color: #FFFFFF;") 
         
         cam_layout = QHBoxLayout()
         cam_layout.addStretch()
@@ -301,7 +301,7 @@ class RegistrationForm(QWidget):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        color = "#13FA23" if ok else "#FA1313"
+        color = "#44CC29" if ok else "#FF0000"
         self.id_banner.setStyleSheet(f"background-color: {color};")
         
         hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"

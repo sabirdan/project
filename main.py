@@ -95,7 +95,6 @@ class StartScreen(QWidget):
                 font-size: 14px;
             }
             QPushButton:hover { background-color: #44CC29; }
-            QPushButton:pressed { background-color: #1F1F1F; }
         """)
         b.clicked.connect(callback)
         return b

@@ -399,7 +399,7 @@ class InfoForm(QWidget):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        banner_bg = '#13FA23' if ok else '#FA1313'
+        banner_bg = '#44CC29' if ok else '#FF0000'
         self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: black;")
         
         banner_text = f"ID {_id_str(self.op_id)}" if ok else "ID не определен"

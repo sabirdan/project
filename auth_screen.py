@@ -87,7 +87,6 @@ class AuthScreen(QWidget):
                 font-weight: 600; 
             } 
             QPushButton:hover { background-color: #44CC29; }
-            QPushButton:pressed { background-color: #1F1F1F; }
         """)
 
         row.addWidget(self.in_id, 1)

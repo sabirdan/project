@@ -191,7 +191,6 @@ class AnalysisForm(QWidget):
         self.btn_instr.setFixedHeight(36)
         self.btn_instr.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_instr.clicked.connect(self._go_instruction)
         
@@ -199,14 +198,12 @@ class AnalysisForm(QWidget):
         self.btn_analysis.setFixedHeight(36)
         self.btn_analysis.setStyleSheet(
             f"QPushButton {{ background-color: #44CC29; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #45D44A; }}"
         )
         
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
         self.btn_control.setStyleSheet(
             f"QPushButton {{ background-color: #8D3C7F; {b_style} }} "
-            f"QPushButton:hover {{ background-color: #9E4576; }}"
         )
         self.btn_control.clicked.connect(self._go_control)
         

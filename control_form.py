@@ -190,12 +190,12 @@ class ControlForm(QWidget):
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }}")
         self.btn_instr.clicked.connect(self._go_instruction)
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }} QPushButton:hover {{ background-color: #9E4576; }}")
+        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: #8D3C7F; {b_style} }}")
         self.btn_analysis.clicked.connect(self._go_analysis)
         
         self.btn_control = QPushButton("Управление")
@@ -272,7 +272,7 @@ class ControlForm(QWidget):
         self.left_col = QFrame()
         self.left_col.setStyleSheet("background-color: #D9D9D9;")
         self.video_col = QFrame()
-        self.video_col.setStyleSheet("background-color: #2b2b2b;")
+        self.video_col.setStyleSheet("background-color: #2C2C2C;")
         
         body_layout.addWidget(self.left_col, stretch=1)
         body_layout.addWidget(self.video_col, stretch=2)
@@ -408,8 +408,8 @@ class ControlForm(QWidget):
         strip_layout.setSpacing(15)
 
         self.lbl_sq_green = ShapeWidget("circle", "#7CE4D5")
-        self.lbl_sq_yellow = ShapeWidget("triangle", "#F9D849")
-        self.lbl_sq_red = ShapeWidget("square", "#D0021B")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "#FFD700")
+        self.lbl_sq_red = ShapeWidget("square", "#FF0000")
 
         strip_layout.addWidget(self.lbl_sq_green)
         strip_layout.addWidget(self.lbl_sq_yellow)
@@ -590,9 +590,9 @@ class ControlForm(QWidget):
         self.player_alarm.stop()
         
         states = {
-            "NORMAL": ("НОРМА", "#009900", "#7CE4D5", "#D0CECF", "#D0CECF", None),
-            "WARNING": ("ВНИМАНИЕ", "#FFD700", "#D0CECF", "#F9D849", "#D0CECF", self.player_warning),
-            "CRITICAL": ("КРИТИЧНО!", "#FF0000", "#D0CECF", "#D0CECF", "#D0021B", self.player_alarm)
+            "NORMAL": ("НОРМА", "#009900", "#7CE4D5", "#C7C7C7", "#C7C7C7", None),
+            "WARNING": ("ВНИМАНИЕ", "#FFD700", "#C7C7C7", "#FFD700", "#C7C7C7", self.player_warning),
+            "CRITICAL": ("КРИТИЧНО!", "#FF0000", "#C7C7C7", "#C7C7C7", "#FF0000", self.player_alarm)
         }
         
         text, color, c_green, c_yellow, c_red, player = states[self.current_state]
