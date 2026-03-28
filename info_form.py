@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 import cv2
 from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QMessageBox, 
     QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QApplication
@@ -12,8 +12,11 @@ from instruction_form import InstructionForm
 from utils import (
     _make_icon, _parse_hms_to_seconds, _seconds_to_hms, 
     _id_str, _draw_to_label_with_dpr, get_cv_face, 
-    cv_compare_faces, _opencv_imread_unicode
+    cv_compare_faces, _opencv_imread_unicode,
+    BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
+    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT
 )
+from main import get_btn_style
 
 class FaceWorker(QObject):
     finished = pyqtSignal(bool, object)
@@ -29,13 +32,12 @@ class FaceWorker(QObject):
         is_same = cv_compare_faces(ref_face_gray, live_face_gray)
         self.finished.emit(is_same, loc)
 
-class InfoForm(QWidget):
+class InfoForm(BaseWindow):
     sig_process = pyqtSignal(object, object)
 
     def __init__(self, start_screen, auth_screen, operator_row: dict, csv_file: str, ops_dir: str):
-        super().__init__()
+        super().__init__(1000, 484, "Информация оператора")
         
-        self.setWindowFlags(Qt.FramelessWindowHint)
         self.start_screen = start_screen
         self.auth_screen = auth_screen
         self.csv_file = csv_file
@@ -77,43 +79,9 @@ class InfoForm(QWidget):
         self.is_present = False
         self._ref_enc_cache = None
 
-        self.W = 1000
-        self.H = 450
-        self.setFixedSize(self.W, self.H + 34)
-        self.setWindowTitle("Информация оператора")
-        self.setStyleSheet("background-color: #D9D9D9;")
-
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        top_grey = QWidget(self)
-        top_grey.setFixedHeight(30)
-        top_layout = QHBoxLayout(top_grey)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.addStretch(1)
-
-        self.btn_close = QPushButton("X", top_grey)
-        self.btn_close.setFixedSize(45, 30)
-        self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet(
-            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
-        )
-        self.btn_close.clicked.connect(self.close)
-        
-        top_layout.addWidget(self.btn_close)
-        main_layout.addWidget(top_grey)
-
-        top_white = QWidget(self)
-        top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: white;")
-        main_layout.addWidget(top_white)
-
-        self.content_container = QWidget(self)
         content_layout = QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
-        main_layout.addWidget(self.content_container)
 
         self._build_ui(content_layout)
         self._reset_state()
@@ -154,15 +122,12 @@ class InfoForm(QWidget):
     def _build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
-        header.setStyleSheet("background-color: #44CC29;")
+        header.setStyleSheet(f"background-color: {COLOR_GREEN};")
         header_layout = QVBoxLayout(header)
         header_layout.setContentsMargins(0, 10, 0, 10)
         header_layout.setSpacing(5)
 
-        t1 = QLabel("НейроБодр")
-        t1.setFont(QFont("Times New Roman", 40, QFont.Bold))
-        t1.setStyleSheet("color: white;")
-        t1.setAlignment(Qt.AlignCenter)
+        t1 = create_label("НейроБодр", 40, bold=True, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(t1)
 
         line_layout = QHBoxLayout()
@@ -175,10 +140,7 @@ class InfoForm(QWidget):
         line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         header_layout.addLayout(line_layout)
 
-        t2 = QLabel("Программа для мониторинга состояния водителей")
-        t2.setFont(QFont("Times New Roman", 16))
-        t2.setStyleSheet("color: white;")
-        t2.setAlignment(Qt.AlignCenter)
+        t2 = create_label("Программа для мониторинга состояния водителей", 16, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(t2)
 
         parent_layout.addWidget(header)
@@ -196,33 +158,29 @@ class InfoForm(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(4)
 
-        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
-        mid_header = QFrame(); mid_header.setStyleSheet("background-color: #D9D9D9;")
-        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
+        left_header = QFrame()
+        left_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        mid_header = QFrame()
+        mid_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        right_header = QFrame()
+        right_header.setStyleSheet(f"background-color: {COLOR_BG};")
 
         top_layout.addWidget(left_header, stretch=1)
         top_layout.addWidget(mid_header, stretch=1)
         top_layout.addWidget(right_header, stretch=1)
 
         lh_layout = QVBoxLayout(left_header)
-        lbl_reg = QLabel("Информация оператора")
-        lbl_reg.setAlignment(Qt.AlignCenter)
-        lbl_reg.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_reg = create_label("Информация оператора", 14, bold=True, align=Qt.AlignCenter)
         lh_layout.addWidget(lbl_reg)
 
         mh_layout = QHBoxLayout(mid_header)
         self.btn_identify_dummy = QPushButton("Идентификация")
         self.btn_identify_dummy.setFixedSize(200, 35)
-        self.btn_identify_dummy.setStyleSheet(
-            "background-color: #2C2C2C; color: white; "
-            "border-radius: 6px; font-size: 16px;"
-        )
+        self.btn_identify_dummy.setStyleSheet(get_btn_style())
         mh_layout.addWidget(self.btn_identify_dummy, alignment=Qt.AlignCenter)
 
         rh_layout = QVBoxLayout(right_header)
-        lbl_info = QLabel("Информационный блок")
-        lbl_info.setAlignment(Qt.AlignCenter)
-        lbl_info.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_info = create_label("Информационный блок", 14, bold=True, align=Qt.AlignCenter)
         rh_layout.addWidget(lbl_info)
 
         body_main_layout.addWidget(top_row)
@@ -232,9 +190,12 @@ class InfoForm(QWidget):
         bottom_layout.setContentsMargins(0, 0, 0, 0)
         bottom_layout.setSpacing(4)
 
-        self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
-        self.mid = QFrame(); self.mid.setStyleSheet("background-color: #D9D9D9;")
-        self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
+        self.left = QFrame()
+        self.left.setStyleSheet(f"background-color: {COLOR_BG};")
+        self.mid = QFrame()
+        self.mid.setStyleSheet(f"background-color: {COLOR_BG};")
+        self.right = QFrame()
+        self.right.setStyleSheet(f"background-color: {COLOR_BG};")
 
         bottom_layout.addWidget(self.left, stretch=1)
         bottom_layout.addWidget(self.mid, stretch=1)
@@ -266,8 +227,7 @@ class InfoForm(QWidget):
         right_layout.setSpacing(10)
 
         status_layout = QHBoxLayout()
-        self.status_text = QLabel()
-        self.status_text.setFont(QFont("Times New Roman", 14))
+        self.status_text = create_label("", 14)
         
         self.status_icon = QLabel()
         self.status_icon.setFixedSize(28, 28)
@@ -278,14 +238,11 @@ class InfoForm(QWidget):
         status_layout.addWidget(self.status_icon)
         right_layout.addLayout(status_layout)
 
-        self.id_banner = QLabel()
+        self.id_banner = create_label("", 18, bold=True, align=Qt.AlignCenter)
         self.id_banner.setFixedHeight(46)
-        self.id_banner.setFont(QFont("Times New Roman", 18, QFont.Bold))
-        self.id_banner.setAlignment(Qt.AlignCenter)
         right_layout.addWidget(self.id_banner)
 
-        self.info_hint = QLabel()
-        self.info_hint.setFont(QFont("Times New Roman", 14))
+        self.info_hint = create_label("", 14)
         right_layout.addWidget(self.info_hint)
 
         right_layout.addStretch()
@@ -295,14 +252,10 @@ class InfoForm(QWidget):
         self.btn_next = QPushButton("Далее")
         self.btn_next.setFixedSize(100, 34)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet("""
-            QPushButton { 
-                background-color: #2C2C2C; color: white; 
-                border-radius: 6px; font-weight: 600; 
-            }
-            QPushButton:hover { background-color: #44CC29; }
-            QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
-        """)
+        self.btn_next.setStyleSheet(
+            get_btn_style() + 
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+        )
         self.btn_next.clicked.connect(self._finish)
         btn_next_layout.addWidget(self.btn_next)
         right_layout.addLayout(btn_next_layout)
@@ -319,13 +272,11 @@ class InfoForm(QWidget):
         profile_layout.addWidget(self.photo)
         
         name_age_layout = QVBoxLayout()
-        self.lbl_name = QLabel()
-        self.lbl_name.setFont(QFont("Times New Roman", 18))
+        self.lbl_name = create_label("", 18)
         self.lbl_name.setWordWrap(True)
         name_age_layout.addWidget(self.lbl_name)
         
-        self.lbl_age = QLabel()
-        self.lbl_age.setFont(QFont("Times New Roman", 18))
+        self.lbl_age = create_label("", 18)
         name_age_layout.addWidget(self.lbl_age)
         
         profile_layout.addLayout(name_age_layout)
@@ -334,20 +285,16 @@ class InfoForm(QWidget):
         
         left_layout.addSpacing(15)
 
-        self.lbl_dt = QLabel()
-        self.lbl_dt.setFont(QFont("Times New Roman", 14))
+        self.lbl_dt = create_label("", 14)
         left_layout.addWidget(self.lbl_dt)
         
-        self.lbl_start = QLabel()
-        self.lbl_start.setFont(QFont("Times New Roman", 14))
+        self.lbl_start = create_label("", 14)
         left_layout.addWidget(self.lbl_start)
         
-        self.lbl_drive = QLabel()
-        self.lbl_drive.setFont(QFont("Times New Roman", 14))
+        self.lbl_drive = create_label("", 14)
         left_layout.addWidget(self.lbl_drive)
         
-        self.lbl_left = QLabel()
-        self.lbl_left.setFont(QFont("Times New Roman", 14))
+        self.lbl_left = create_label("", 14)
         left_layout.addWidget(self.lbl_left)
 
         left_layout.addStretch()
@@ -399,8 +346,8 @@ class InfoForm(QWidget):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        banner_bg = '#44CC29' if ok else '#FF0000'
-        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: #2C2C2C;")
+        banner_bg = COLOR_GREEN if ok else COLOR_RED
+        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLOR_BTN_BG};")
         
         banner_text = f"ID {_id_str(self.op_id)}" if ok else "ID не определен"
         self.id_banner.setText(banner_text)

@@ -3,15 +3,27 @@ import csv
 import numpy as np
 from datetime import datetime
 import cv2
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QPixmap, QGuiApplication
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QImage, QPixmap, QGuiApplication, QPainter, QBrush, QColor, QPolygon, QFont
+from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+
+COLOR_BG = "#D9D9D9"
+COLOR_RED = "#FF0000"
+COLOR_BTN_BG = "#2C2C2C"
+COLOR_GREEN = "#44CC29"
+COLOR_PURPLE = "#8D3C7F"
+COLOR_DISABLED_BG = "#BDBDBD"
+COLOR_DISABLED_TEXT = "#6B6B6B"
+COLOR_NORM_TEXT = "#009900"
+COLOR_WARN = "#FFD700"
+COLOR_CIRCLE_GREEN = "#7CE4D5"
+COLOR_SHAPE_OFF = "#C7C7C7"
 
 CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
-# 1. РАБОТА С CSV И СИСТЕМНЫМИ ДАННЫМИ
+# РАБОТА С CSV И СИСТЕМНЫМИ ДАННЫМИ
 
 def _safe_csv_cell(s: str) -> str:
     s = (s or "").strip()
@@ -65,7 +77,7 @@ def _find_operator_by_id(csv_file: str, op_id: int):
                 return row
     return None
 
-# 2. РАБОТА СО ВРЕМЕНЕМ
+# РАБОТА СО ВРЕМЕНЕМ
 
 def _now_date_str():
     return datetime.now().strftime("%d.%m.%Y")
@@ -86,7 +98,7 @@ def _seconds_to_hms(x: int) -> str:
     s = x % 60
     return f"{h:02d}:{m:02d}:{s:02d}"
 
-# 3. КОМПЬЮТЕРНОЕ ЗРЕНИЕ (OPENCV) И ПОИСК ЛИЦ
+# КОМПЬЮТЕРНОЕ ЗРЕНИЕ (OPENCV) И ПОИСК ЛИЦ
 
 def get_cv_face(frame_bgr):
     if frame_bgr is None:
@@ -139,8 +151,85 @@ def cv_find_match(known_faces, live_gray):
             return pid
     return None
 
+# РАБОТА С ИНТЕРФЕЙСОМ (PYQT5) И ОТРИСОВКА
 
-# 4. РАБОТА С ИНТЕРФЕЙСОМ (PYQT5) И ОТРИСОВКА
+class BaseWindow(QWidget):
+    def __init__(self, width, height, title):
+        super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setFixedSize(width, height)
+        self.setWindowTitle(title)
+        self.setStyleSheet(f"background-color: {COLOR_BG};")
+
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        top_grey = QWidget(self)
+        top_grey.setFixedHeight(30)
+        top_layout = QHBoxLayout(top_grey)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.addStretch(1)
+
+        self.btn_close = QPushButton("X", top_grey)
+        self.btn_close.setFixedSize(45, 30)
+        self.btn_close.setCursor(Qt.PointingHandCursor)
+        self.btn_close.setStyleSheet(
+            f"color: {COLOR_RED}; background: transparent; border: none; font-size: 24px; font-weight: bold;"
+        )
+        self.btn_close.clicked.connect(self.close)
+        
+        top_layout.addWidget(self.btn_close)
+        self.main_layout.addWidget(top_grey)
+
+        top_white = QWidget(self)
+        top_white.setFixedHeight(4)
+        top_white.setStyleSheet("background-color: white;")
+        self.main_layout.addWidget(top_white)
+
+        self.content_container = QWidget(self)
+        self.main_layout.addWidget(self.content_container)
+
+class ShapeWidget(QWidget):
+    def __init__(self, shape_type, color, size=40, parent=None):
+        super().__init__(parent)
+        self.shape_type = shape_type
+        self.color = color
+        self.setFixedSize(size, size)
+
+    def set_color(self, new_color):
+        self.color = new_color
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(self.color)))
+        
+        if self.shape_type == "circle":
+            painter.drawEllipse(0, 0, self.width(), self.height())
+        elif self.shape_type == "triangle":
+            points = [
+                QPoint(self.width() // 2, 0),
+                QPoint(0, self.height()),
+                QPoint(self.width(), self.height())
+            ]
+            painter.drawPolygon(QPolygon(points))
+        elif self.shape_type == "square":
+            painter.drawRect(0, 0, self.width(), self.height())
+
+def create_label(text, font_size=14, bold=False, color=None, align=None):
+    lbl = QLabel(text)
+    font = QFont("Times New Roman", font_size)
+    if bold:
+        font.setBold(True)
+    lbl.setFont(font)
+    if color:
+        lbl.setStyleSheet(f"color: {color};")
+    if align:
+        lbl.setAlignment(align)
+    return lbl
 
 def _make_icon(ok: bool, size: int = 28) -> QPixmap:
     name = 'accept.png' if ok else 'cancel.png'
@@ -183,8 +272,7 @@ def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
     pm.setDevicePixelRatio(dpr)
     label.setPixmap(pm)
 
-
-# 5. ФАЙЛОВЫЕ ОПЕРАЦИИ И СОХРАНЕНИЕ
+# ФАЙЛОВЫЕ ОПЕРАЦИИ И СОХРАНЕНИЕ
 
 def _ensure_dirs(base_dir: str):
     ops_dir = os.path.join(CSV_DIRECTORY, "operators")

@@ -3,24 +3,25 @@ import re
 import csv
 import cv2
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
-    QLineEdit, QFrame, QMessageBox, QWidget, QLabel, 
+    QFrame, QMessageBox, QWidget, QLabel, 
     QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
 )
 
 from utils import (
     _make_icon, _id_str, _next_id, _safe_csv_cell, _now_date_str, 
     _now_time_str, _draw_to_label_with_dpr, _opencv_save_jpg,
-    get_cv_face, cv_find_match, cv_load_known_faces
+    get_cv_face, cv_find_match, cv_load_known_faces,
+    BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
+    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT
 )
+from main import create_line_edit, get_btn_style
 
-
-class RegistrationForm(QWidget):
+class RegistrationForm(BaseWindow):
     def __init__(self, start_screen, csv_file: str, ops_dir: str, software_start_time: str):
-        super().__init__()
+        super().__init__(1000, 484, "НейроБодр")
         
-        self.setWindowFlags(Qt.FramelessWindowHint)
         self.start_screen = start_screen
         self.csv_file = csv_file
         self.ops_dir = ops_dir
@@ -34,42 +35,9 @@ class RegistrationForm(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._grab_frame)
 
-        self.W = 1000
-        self.H = 450
-        self.setFixedSize(self.W, self.H + 34)
-        self.setWindowTitle("НейроБодр")
-        self.setStyleSheet("background-color: #D9D9D9;")
-
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        top_grey = QWidget(self)
-        top_grey.setFixedHeight(30)
-        top_layout = QHBoxLayout(top_grey)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.addStretch(1)
-
-        self.btn_close = QPushButton("X", top_grey)
-        self.btn_close.setFixedSize(45, 30)
-        self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet(
-            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
-        )
-        self.btn_close.clicked.connect(self.close)
-        top_layout.addWidget(self.btn_close)
-        main_layout.addWidget(top_grey)
-
-        top_white = QWidget(self)
-        top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: white;")
-        main_layout.addWidget(top_white)
-
-        self.content_container = QWidget(self)
         content_layout = QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
-        main_layout.addWidget(self.content_container)
 
         self._build_ui(content_layout)
         self._set_status(False, assigned=False)
@@ -96,15 +64,12 @@ class RegistrationForm(QWidget):
     def _build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
-        header.setStyleSheet("background-color: #44CC29;")
+        header.setStyleSheet(f"background-color: {COLOR_GREEN};")
         header_layout = QVBoxLayout(header)
         header_layout.setContentsMargins(0, 10, 0, 10)
         header_layout.setSpacing(5)
 
-        t1 = QLabel("НейроБодр")
-        t1.setFont(QFont("Times New Roman", 40, QFont.Bold))
-        t1.setStyleSheet("color: white;")
-        t1.setAlignment(Qt.AlignCenter)
+        t1 = create_label("НейроБодр", 40, bold=True, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(t1)
 
         line_layout = QHBoxLayout()
@@ -117,10 +82,7 @@ class RegistrationForm(QWidget):
         line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         header_layout.addLayout(line_layout)
 
-        t2 = QLabel("Программа для мониторинга состояния водителей")
-        t2.setFont(QFont("Times New Roman", 16))
-        t2.setStyleSheet("color: white;")
-        t2.setAlignment(Qt.AlignCenter)
+        t2 = create_label("Программа для мониторинга состояния водителей", 16, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(t2)
 
         parent_layout.addWidget(header)
@@ -138,39 +100,34 @@ class RegistrationForm(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(4)
 
-        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
-        mid_header = QFrame(); mid_header.setStyleSheet("background-color: #D9D9D9;")
-        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
+        left_header = QFrame()
+        left_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        mid_header = QFrame()
+        mid_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        right_header = QFrame()
+        right_header.setStyleSheet(f"background-color: {COLOR_BG};")
 
         top_layout.addWidget(left_header, stretch=1)
         top_layout.addWidget(mid_header, stretch=1)
         top_layout.addWidget(right_header, stretch=1)
 
         lh_layout = QVBoxLayout(left_header)
-        lbl_reg = QLabel("Регистрация оператора")
-        lbl_reg.setAlignment(Qt.AlignCenter)
-        lbl_reg.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_reg = create_label("Регистрация оператора", 14, bold=True, align=Qt.AlignCenter)
         lh_layout.addWidget(lbl_reg)
 
         mh_layout = QHBoxLayout(mid_header)
         self.btn_identify = QPushButton("Идентификация")
         self.btn_identify.setFixedSize(200, 35)
         self.btn_identify.setCursor(Qt.PointingHandCursor)
-        self.btn_identify.setStyleSheet("""
-            QPushButton { 
-                background-color: #2C2C2C; color: white; 
-                border-radius: 6px; font-size: 16px; 
-            }
-            QPushButton:hover { background-color: #44CC29; }
-            QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
-        """)
+        self.btn_identify.setStyleSheet(
+            get_btn_style() + 
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+        )
         self.btn_identify.clicked.connect(self._on_identify_clicked)
         mh_layout.addWidget(self.btn_identify, alignment=Qt.AlignCenter)
 
         rh_layout = QVBoxLayout(right_header)
-        lbl_info = QLabel("Информационный блок")
-        lbl_info.setAlignment(Qt.AlignCenter)
-        lbl_info.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_info = create_label("Информационный блок", 14, bold=True, align=Qt.AlignCenter)
         rh_layout.addWidget(lbl_info)
 
         body_main_layout.addWidget(top_row)
@@ -180,9 +137,12 @@ class RegistrationForm(QWidget):
         bottom_layout.setContentsMargins(0, 0, 0, 0)
         bottom_layout.setSpacing(4)
 
-        self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
-        self.mid = QFrame(); self.mid.setStyleSheet("background-color: #D9D9D9;")
-        self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
+        self.left = QFrame()
+        self.left.setStyleSheet(f"background-color: {COLOR_BG};")
+        self.mid = QFrame()
+        self.mid.setStyleSheet(f"background-color: {COLOR_BG};")
+        self.right = QFrame()
+        self.right.setStyleSheet(f"background-color: {COLOR_BG};")
 
         bottom_layout.addWidget(self.left, stretch=1)
         bottom_layout.addWidget(self.mid, stretch=1)
@@ -229,8 +189,7 @@ class RegistrationForm(QWidget):
         right_layout.setSpacing(10)
 
         status_layout = QHBoxLayout()
-        self.status_text = QLabel()
-        self.status_text.setFont(QFont("Times New Roman", 14))
+        self.status_text = create_label("", 14)
         
         self.status_icon = QLabel()
         self.status_icon.setFixedSize(28, 28)
@@ -241,14 +200,11 @@ class RegistrationForm(QWidget):
         status_layout.addWidget(self.status_icon)
         right_layout.addLayout(status_layout)
 
-        self.id_banner = QLabel()
+        self.id_banner = create_label("", 18, bold=True, align=Qt.AlignCenter)
         self.id_banner.setFixedHeight(46)
-        self.id_banner.setFont(QFont("Times New Roman", 18, QFont.Bold))
-        self.id_banner.setAlignment(Qt.AlignCenter)
         right_layout.addWidget(self.id_banner)
 
-        self.info_hint = QLabel()
-        self.info_hint.setFont(QFont("Times New Roman", 14))
+        self.info_hint = create_label("", 14)
         right_layout.addWidget(self.info_hint)
 
         right_layout.addStretch()
@@ -263,14 +219,10 @@ class RegistrationForm(QWidget):
         btn = QPushButton(text)
         btn.setFixedSize(width, 34)
         btn.setCursor(Qt.PointingHandCursor)
-        btn.setStyleSheet("""
-            QPushButton { 
-                background-color: #2C2C2C; color: white; 
-                border-radius: 6px; font-weight: 600; 
-            }
-            QPushButton:hover { background-color: #44CC29; }
-            QPushButton:disabled { background-color: #BDBDBD; color: #6B6B6B; }
-        """)
+        btn.setStyleSheet(
+            get_btn_style() + 
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+        )
         btn.clicked.connect(callback)
         return btn
 
@@ -278,15 +230,10 @@ class RegistrationForm(QWidget):
         row_layout = QHBoxLayout()
         row_layout.setSpacing(10)
         
-        lbl = QLabel(text)
+        lbl = create_label(text, 14, bold=True, align=Qt.AlignRight | Qt.AlignVCenter)
         lbl.setFixedWidth(85)
-        lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        lbl.setFont(QFont("Times New Roman", 14, QFont.Bold))
 
-        inp = QLineEdit()
-        inp.setFixedHeight(36)
-        inp.setStyleSheet("background-color: white; border: none; padding-left: 10px;")
-        inp.setFont(QFont("Times New Roman", 14))
+        inp = create_line_edit(height=36, font_size=14, padding=10)
 
         row_layout.addWidget(lbl)
         row_layout.addWidget(inp)
@@ -301,8 +248,8 @@ class RegistrationForm(QWidget):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        color = "#44CC29" if ok else "#FF0000"
-        self.id_banner.setStyleSheet(f"background-color: {color};")
+        color = COLOR_GREEN if ok else COLOR_RED
+        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLOR_BTN_BG};")
         
         hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
         self.info_hint.setText(hint)

@@ -3,106 +3,39 @@ import os
 import csv
 import datetime
 
-import utils
 from PyQt5.QtCore import QPoint, Qt, QRegularExpression, QTimer, QUrl
-from PyQt5.QtGui import (
-    QBrush, QColor, QFont, QPainter, QPixmap, 
-    QGuiApplication, QPolygon, QRegularExpressionValidator
-)
+from PyQt5.QtGui import QFont, QPixmap, QGuiApplication, QRegularExpressionValidator
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QFrame, QApplication, 
-    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox, QSpacerItem, QSizePolicy, QGridLayout
+    QVBoxLayout, QHBoxLayout, QMessageBox, QSpacerItem, QSizePolicy
 )
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
-class ShapeWidget(QWidget):
-    def __init__(self, shape_type, color, parent=None):
-        super().__init__(parent)
-        self.shape_type = shape_type
-        self.color = color
-        self.setFixedSize(80, 80)
+from utils import (
+    BaseWindow, ShapeWidget, create_label, _csv_path, _id_str, 
+    _ensure_dirs, _parse_hms_to_seconds,
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_RED, COLOR_WARN, 
+    COLOR_CIRCLE_GREEN, COLOR_NORM_TEXT, COLOR_SHAPE_OFF
+)
+from main import create_line_edit, get_btn_style
 
-    def set_color(self, new_color):
-        self.color = new_color
-        self.update()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QBrush(QColor(self.color)))
-
-        if self.shape_type == "circle":
-            painter.drawEllipse(0, 0, self.width(), self.height())
-        
-        elif self.shape_type == "triangle":
-            points = [
-                QPoint(self.width() // 2, 0),
-                QPoint(0, self.height()),
-                QPoint(self.width(), self.height())
-            ]
-            painter.drawPolygon(QPolygon(points))
-        
-        elif self.shape_type == "square":
-            painter.drawRect(0, 0, self.width(), self.height())
-
-class AuthScreen(QWidget):
+class AuthScreen(BaseWindow):
     def __init__(self, remote_form):
-        super().__init__()
+        super().__init__(310, 150, "Авторизация")
         self.remote_form = remote_form
-        
-        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowModality(Qt.ApplicationModal)
-        self.setFixedSize(310, 150)
-        self.setWindowTitle("Авторизация")
-        self.setStyleSheet("background-color: #D9D9D9;")
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        top_grey = QWidget(self)
-        top_grey.setFixedHeight(24)
-        top_layout = QHBoxLayout(top_grey)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.addStretch(1)
-
-        self.btn_close = QPushButton("X", top_grey)
-        self.btn_close.setFixedSize(24, 24)
-        self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet(
-            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
-        )
-        self.btn_close.clicked.connect(self.close)
-        
-        top_layout.addWidget(self.btn_close)
-        main_layout.addWidget(top_grey)
-
-        top_white = QWidget(self)
-        top_white.setFixedHeight(3)
-        top_white.setStyleSheet("background-color: white;")
-        main_layout.addWidget(top_white)
-
-        content_container = QWidget(self)
-        main_layout.addWidget(content_container)
-
-        root = QVBoxLayout(content_container)
+        root = QVBoxLayout(self.content_container)
         root.setContentsMargins(15, 15, 15, 15)
 
-        title = QLabel("Введите ID_оператора", self)
-        title.setFont(QFont("Times New Roman", 16))
+        title = create_label("Введите ID_оператора", 16)
         root.addWidget(title, alignment=Qt.AlignLeft | Qt.AlignTop)
         root.addStretch(1)
 
         row = QHBoxLayout()
         row.setSpacing(10)
 
-        self.in_id = QLineEdit(self)
-        self.in_id.setFixedHeight(36)
-        self.in_id.setFont(QFont("Times New Roman", 18))
-        self.in_id.setStyleSheet(
-            "background-color: white; border: none; padding-left: 8px;"
-        )
+        self.in_id = create_line_edit(height=36, font_size=18, padding=8)
         self.in_id.setValidator(
             QRegularExpressionValidator(QRegularExpression(r"\d+"), self)
         )
@@ -110,16 +43,7 @@ class AuthScreen(QWidget):
         self.btn_login = QPushButton("Далее", self)
         self.btn_login.setFixedSize(100, 36)
         self.btn_login.setCursor(Qt.PointingHandCursor)
-        self.btn_login.setStyleSheet("""
-            QPushButton { 
-                background-color: #2C2C2C; 
-                color: white; 
-                border-radius: 6px; 
-                font-weight: 600; 
-                font-size: 13px; 
-            }
-            QPushButton:hover { background-color: #44CC29; }
-        """)
+        self.btn_login.setStyleSheet(get_btn_style())
         self.btn_login.clicked.connect(self.on_login)
 
         row.addWidget(self.in_id, 1)
@@ -133,7 +57,7 @@ class AuthScreen(QWidget):
 
         found_user = None
         try:
-            with open(utils._csv_path(), "r", newline="", encoding="utf-8") as f:
+            with open(_csv_path(), "r", newline="", encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     if row.get("id") == user_id:
                         found_user = row
@@ -150,29 +74,17 @@ class AuthScreen(QWidget):
 
     def position_over_terminal(self, parent):
         pgp = parent.mapToGlobal(QPoint(0, 0))
-        
-        abs_x = pgp.x() + (parent.W // 3)
+        abs_x = pgp.x() + (parent.width() // 3)
         abs_y = pgp.y() + 34 + 120 + 44 
         
-        target_x = abs_x + ((parent.W // 3) - self.width()) // 2
-        target_y = abs_y + (parent.BODY_H - 44 - self.height()) // 2
+        target_x = abs_x + ((parent.width() // 3) - self.width()) // 2
+        target_y = abs_y + (286 - self.height()) // 2
         
         self.move(target_x, target_y)
 
-class RemoteForm(QWidget):
+class RemoteForm(BaseWindow):
     def __init__(self):
-        super().__init__()
-        
-        self.W, self.H = 1000, 450
-        self.FRAME_H = 34
-        self.HEADER_H = 120
-        self.SECTION_H = 44
-        self.BODY_H = self.H - self.HEADER_H
-
-        self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setFixedSize(self.W, self.H + self.FRAME_H)
-        self.setWindowTitle("Удаленный мониторинг")
-        self.setStyleSheet("background-color: #D9D9D9;")
+        super().__init__(1000, 484, "Удаленный мониторинг")
         
         self._old_pos = None
         self.is_movable = False
@@ -198,10 +110,14 @@ class RemoteForm(QWidget):
         self.current_status = "NORMAL"
         self.auth_window = None
 
-        self._build_ui()
+        content_layout = QVBoxLayout(self.content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+
+        self._build_ui(content_layout)
 
     def mousePressEvent(self, event):
-        if self.is_movable and event.button() == Qt.LeftButton and event.y() <= self.FRAME_H:
+        if self.is_movable and event.button() == Qt.LeftButton and event.y() <= 34:
             self._old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
@@ -224,8 +140,8 @@ class RemoteForm(QWidget):
         self.lbl_name.setText(name_text)
         self.lbl_age.setText(f"{user_row.get('age', '')} лет")
 
-        photo_name = f"ID_{utils._id_str(int(user_row.get('id', '0')))}.jpg"
-        photo_path = os.path.join(utils._ensure_dirs(self.base_dir), photo_name)
+        photo_name = f"ID_{_id_str(int(user_row.get('id', '0')))}.jpg"
+        photo_path = os.path.join(_ensure_dirs(self.base_dir), photo_name)
         pix = QPixmap(photo_path)
         
         if not pix.isNull():
@@ -245,9 +161,7 @@ class RemoteForm(QWidget):
         except:
             self.start_time = datetime.datetime.now()
 
-        self.lbl_start.setText(
-            f"Время запуска ПО: <b>{self.start_time.strftime('%H:%M:%S')}</b>"
-        )
+        self.lbl_start.setText(f"Время запуска ПО: <b>{self.start_time.strftime('%H:%M:%S')}</b>")
         self.timer_monitor.start(1000)
 
     def _refresh_left_info(self):
@@ -276,7 +190,7 @@ class RemoteForm(QWidget):
 
         if target_id:
             try:
-                with open(utils._csv_path(), "r", newline="", encoding="utf-8") as f:
+                with open(_csv_path(), "r", newline="", encoding="utf-8") as f:
                     for row in csv.DictReader(f):
                         if row.get("id") == target_id:
                             p_raw = row.get("current_pulse", "0")
@@ -298,7 +212,7 @@ class RemoteForm(QWidget):
         )
         self.lbl_drive.setText(f"Время в дороге: <b>{drive_dur}</b>")
 
-        seconds_done = utils._parse_hms_to_seconds(drive_dur)
+        seconds_done = _parse_hms_to_seconds(drive_dur)
         rem = max(0, 9 * 3600 - seconds_done)
         time_left_str = f"{rem // 3600:02d}:{(rem % 3600) // 60:02d}:{rem % 60:02d}"
         self.lbl_left.setText(f"Оставшееся время: <b>{time_left_str}</b>")
@@ -308,56 +222,54 @@ class RemoteForm(QWidget):
 
     def _update_indication_block(self, pulse):
         self.lbl_pulse_val.setText(str(pulse) if pulse > 0 else "--")
-        
-        border_blue = "border: 2px solid #44CC29;"
-        c_green, c_yellow, c_red, c_off = "#009900", "#FFD700", "#FF0000", "#C7C7C7"
+        border_blue = f"border: 2px solid {COLOR_GREEN};"
 
         if self.current_status == "NORMAL":
             self.player_warning.stop()
             self.player_alarm.stop()
             
-            self.lbl_status.setText("Состояние: <span style='color:green'>НОРМА</span>")
-            self.lbl_pulse_val.setStyleSheet("color: #009900;")
+            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_NORM_TEXT}'>НОРМА</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_NORM_TEXT};")
             
-            self.lbl_sq_green.setStyleSheet(f"background-color: {c_green}; {border_blue}")
-            self.lbl_sq_yellow.setStyleSheet(c_off)
-            self.lbl_sq_red.setStyleSheet(c_off)
+            self.lbl_sq_green.setStyleSheet(f"background-color: {COLOR_CIRCLE_GREEN}; {border_blue}")
+            self.lbl_sq_yellow.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_red.setStyleSheet(COLOR_SHAPE_OFF)
             
-            self.lbl_sq_green.set_color("#7CE4D5")
-            self.lbl_sq_yellow.set_color(c_off)
-            self.lbl_sq_red.set_color(c_off)
+            self.lbl_sq_green.set_color(COLOR_CIRCLE_GREEN)
+            self.lbl_sq_yellow.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_red.set_color(COLOR_SHAPE_OFF)
 
         elif self.current_status == "WARNING":
             if self.player_warning.state() != QMediaPlayer.PlayingState:
                 self.player_warning.play()
             self.player_alarm.stop()
             
-            self.lbl_status.setText("Состояние: <span style='color:#FFD700'>ВНИМАНИЕ</span>")
-            self.lbl_pulse_val.setStyleSheet("color: #FFD700;")
+            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_WARN}'>ВНИМАНИЕ</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_WARN};")
             
-            self.lbl_sq_green.setStyleSheet(c_off)
-            self.lbl_sq_yellow.setStyleSheet(f"background-color: {c_yellow}; {border_blue}")
-            self.lbl_sq_red.setStyleSheet(c_off)
+            self.lbl_sq_green.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_yellow.setStyleSheet(f"background-color: {COLOR_WARN}; {border_blue}")
+            self.lbl_sq_red.setStyleSheet(COLOR_SHAPE_OFF)
             
-            self.lbl_sq_green.set_color(c_off)
-            self.lbl_sq_yellow.set_color("#FFD700")
-            self.lbl_sq_red.set_color(c_off)
+            self.lbl_sq_green.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_yellow.set_color(COLOR_WARN)
+            self.lbl_sq_red.set_color(COLOR_SHAPE_OFF)
 
         elif self.current_status == "CRITICAL":
             self.player_warning.stop()
             if self.player_alarm.state() != QMediaPlayer.PlayingState:
                 self.player_alarm.play()
                 
-            self.lbl_status.setText("Состояние: <span style='color:red'>КРИТИЧНО!</span>")
-            self.lbl_pulse_val.setStyleSheet("color: red;")
+            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_RED}'>КРИТИЧНО!</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_RED};")
             
-            self.lbl_sq_green.setStyleSheet(c_off)
-            self.lbl_sq_yellow.setStyleSheet(c_off)
-            self.lbl_sq_red.setStyleSheet(f"background-color: {c_red}; {border_blue}")
+            self.lbl_sq_green.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_yellow.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_red.setStyleSheet(f"background-color: {COLOR_RED}; {border_blue}")
             
-            self.lbl_sq_green.set_color(c_off)
-            self.lbl_sq_yellow.set_color(c_off)
-            self.lbl_sq_red.set_color("#FF0000")
+            self.lbl_sq_green.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_yellow.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_red.set_color(COLOR_RED)
 
     def _update_terminal_block(self, pulse):
         p_str = str(pulse) if pulse > 0 else "--"
@@ -368,8 +280,7 @@ class RemoteForm(QWidget):
             msg = (f"Состояние оператора выходит за пределы «ВНИМАНИЕ»\n"
                    f"Пульс {p_str}\nЗапуск звукового оповещения «ВНИМАНИЕ»")
         elif self.current_status == "CRITICAL":
-            msg = (f"Состояние критичное!\nПульс {p_str}\n"
-                   f"Запуск звукового оповещения!")
+            msg = (f"Состояние критичное!\nПульс {p_str}\nЗапуск звукового оповещения!")
         
         self.mid_info.setText(msg)
 
@@ -379,8 +290,8 @@ class RemoteForm(QWidget):
         self.player_alarm.stop()
 
         for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
-            sq.set_color("#C7C7C7")
-            sq.setStyleSheet("background-color: white; border: 2px solid #44CC29;")
+            sq.set_color(COLOR_SHAPE_OFF)
+            sq.setStyleSheet(f"background-color: white; border: 2px solid {COLOR_GREEN};")
 
         self._refresh_left_info()
         self.mid_info.setText("")
@@ -391,44 +302,16 @@ class RemoteForm(QWidget):
         self.auth_window.position_over_terminal(self)
         self.auth_window.show()
 
-    def _build_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        top_grey = QWidget()
-        top_grey.setFixedHeight(30)
-        top_layout = QHBoxLayout(top_grey)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.addStretch(1)
-
-        self.btn_close = QPushButton("X")
-        self.btn_close.setFixedSize(30, 30)
-        self.btn_close.setCursor(Qt.PointingHandCursor)
-        self.btn_close.setStyleSheet(
-            "color: #FF0000; border: none; font-size: 24px; font-weight: bold;"
-        )
-        self.btn_close.clicked.connect(self.close)
-        top_layout.addWidget(self.btn_close)
-        main_layout.addWidget(top_grey)
-
-        top_line = QFrame()
-        top_line.setFixedHeight(4)
-        top_line.setStyleSheet("background-color: white;")
-        main_layout.addWidget(top_line)
-
+    def _build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
-        header.setStyleSheet("background-color: #44CC29;")
+        header.setStyleSheet(f"background-color: {COLOR_GREEN};")
         
         header_layout = QVBoxLayout(header)
         header_layout.setContentsMargins(0, 10, 0, 10)
         header_layout.setSpacing(5)
 
-        title_main = QLabel("НейроБодр")
-        title_main.setAlignment(Qt.AlignCenter)
-        title_main.setStyleSheet("color: white;")
-        title_main.setFont(QFont("Times New Roman", 40, QFont.Bold))
+        title_main = create_label("НейроБодр", 40, bold=True, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(title_main)
         
         line_layout = QHBoxLayout()
@@ -441,18 +324,15 @@ class RemoteForm(QWidget):
         line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         header_layout.addLayout(line_layout)
         
-        title_sub = QLabel("Программа для мониторинга состояния водителей")
-        title_sub.setAlignment(Qt.AlignCenter)
-        title_sub.setStyleSheet("color: white;")
-        title_sub.setFont(QFont("Times New Roman", 16))
+        title_sub = create_label("Программа для мониторинга состояния водителей", 16, color="white", align=Qt.AlignCenter)
         header_layout.addWidget(title_sub)
         
-        main_layout.addWidget(header)
+        parent_layout.addWidget(header)
 
         header_bottom_line = QFrame()
         header_bottom_line.setFixedHeight(4)
         header_bottom_line.setStyleSheet("background-color: white;")
-        main_layout.addWidget(header_bottom_line)
+        parent_layout.addWidget(header_bottom_line)
 
         body_container = QWidget()
         body_container.setStyleSheet("background-color: white;")
@@ -467,30 +347,24 @@ class RemoteForm(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(4)
 
-        left_header = QFrame(); left_header.setStyleSheet("background-color: #D9D9D9;")
-        mid_header = QFrame(); mid_header.setStyleSheet("background-color: #D9D9D9;")
-        right_header = QFrame(); right_header.setStyleSheet("background-color: #D9D9D9;")
+        left_header = QFrame(); left_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        mid_header = QFrame(); mid_header.setStyleSheet(f"background-color: {COLOR_BG};")
+        right_header = QFrame(); right_header.setStyleSheet(f"background-color: {COLOR_BG};")
 
         top_layout.addWidget(left_header, stretch=1)
         top_layout.addWidget(mid_header, stretch=1)
         top_layout.addWidget(right_header, stretch=1)
 
         lh_layout = QVBoxLayout(left_header)
-        lbl_info = QLabel("Информация оператора")
-        lbl_info.setAlignment(Qt.AlignCenter)
-        lbl_info.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_info = create_label("Информация оператора", 14, bold=True, align=Qt.AlignCenter)
         lh_layout.addWidget(lbl_info)
 
         mh_layout = QVBoxLayout(mid_header)
-        lbl_term = QLabel("Терминальный блок")
-        lbl_term.setAlignment(Qt.AlignCenter)
-        lbl_term.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_term = create_label("Терминальный блок", 14, bold=True, align=Qt.AlignCenter)
         mh_layout.addWidget(lbl_term)
         
         rh_layout = QVBoxLayout(right_header)
-        lbl_ind = QLabel("Блок индикации")
-        lbl_ind.setAlignment(Qt.AlignCenter)
-        lbl_ind.setFont(QFont("Times New Roman", 14, QFont.Bold))
+        lbl_ind = create_label("Блок индикации", 14, bold=True, align=Qt.AlignCenter)
         rh_layout.addWidget(lbl_ind)
 
         body_main_layout.addWidget(top_row)
@@ -500,16 +374,16 @@ class RemoteForm(QWidget):
         bottom_layout.setContentsMargins(0, 0, 0, 0)
         bottom_layout.setSpacing(4)
 
-        self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
-        self.mid = QFrame(); self.mid.setStyleSheet("background-color: #2C2C2C;")
-        self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
+        self.left = QFrame(); self.left.setStyleSheet(f"background-color: {COLOR_BG};")
+        self.mid = QFrame(); self.mid.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        self.right = QFrame(); self.right.setStyleSheet(f"background-color: {COLOR_BG};")
 
         bottom_layout.addWidget(self.left, stretch=1)
         bottom_layout.addWidget(self.mid, stretch=1)
         bottom_layout.addWidget(self.right, stretch=1)
 
         body_main_layout.addWidget(bottom_row, stretch=1)
-        main_layout.addWidget(body_container, stretch=1)
+        parent_layout.addWidget(body_container, stretch=1)
 
         self._build_left_info()
         self._build_mid_info()
@@ -528,13 +402,11 @@ class RemoteForm(QWidget):
         profile_layout.addWidget(self.photo)
         
         name_age_layout = QVBoxLayout()
-        self.lbl_name = QLabel("Фамилия Имя Отчество")
-        self.lbl_name.setFont(QFont("Times New Roman", 16))
+        self.lbl_name = create_label("Фамилия Имя Отчество", 16)
         self.lbl_name.setWordWrap(True)
         name_age_layout.addWidget(self.lbl_name)
         
-        self.lbl_age = QLabel("Возраст")
-        self.lbl_age.setFont(QFont("Times New Roman", 16))
+        self.lbl_age = create_label("Возраст", 16)
         name_age_layout.addWidget(self.lbl_age)
         
         profile_layout.addLayout(name_age_layout)
@@ -543,26 +415,19 @@ class RemoteForm(QWidget):
         
         left_layout.addSpacing(15)
 
-        font_labels = QFont("Times New Roman", 14)
-        
-        self.lbl_dt = QLabel("Дата/время: <b>00.00.0000 / 00:00:00</b>")
-        self.lbl_dt.setFont(font_labels)
+        self.lbl_dt = create_label("Дата/время: <b>00.00.0000 / 00:00:00</b>", 14)
         left_layout.addWidget(self.lbl_dt)
         
-        self.lbl_start = QLabel("Время запуска ПО: <b>00:00:00</b>")
-        self.lbl_start.setFont(font_labels)
+        self.lbl_start = create_label("Время запуска ПО: <b>00:00:00</b>", 14)
         left_layout.addWidget(self.lbl_start)
         
-        self.lbl_drive = QLabel("Время в дороге: <b>00:00:00</b>")
-        self.lbl_drive.setFont(font_labels)
+        self.lbl_drive = create_label("Время в дороге: <b>00:00:00</b>", 14)
         left_layout.addWidget(self.lbl_drive)
         
-        self.lbl_left = QLabel("Оставшееся время: <b>00:00:00</b>")
-        self.lbl_left.setFont(font_labels)
+        self.lbl_left = create_label("Оставшееся время: <b>00:00:00</b>", 14)
         left_layout.addWidget(self.lbl_left)
         
-        self.lbl_status = QLabel("Состояние: ")
-        self.lbl_status.setFont(font_labels)
+        self.lbl_status = create_label("Состояние: ", 14)
         left_layout.addWidget(self.lbl_status)
 
         left_layout.addStretch()
@@ -572,10 +437,8 @@ class RemoteForm(QWidget):
         mid_layout = QVBoxLayout(self.mid)
         mid_layout.setContentsMargins(20, 20, 20, 20)
         
-        self.mid_info = QLabel("")
-        self.mid_info.setStyleSheet("color: white; background: transparent;")
+        self.mid_info = create_label("", 11, color="white", align=Qt.AlignLeft | Qt.AlignTop)
         self.mid_info.setFont(QFont("Consolas", 11))
-        self.mid_info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.mid_info.setWordWrap(True)
         
         mid_layout.addWidget(self.mid_info)
@@ -585,12 +448,9 @@ class RemoteForm(QWidget):
         right_layout.setContentsMargins(15, 20, 15, 20)
         
         pulse_layout = QHBoxLayout()
-        lbl_pulse_title = QLabel("Пульс:")
-        lbl_pulse_title.setFont(QFont("Times New Roman", 28, QFont.Bold))
+        lbl_pulse_title = create_label("Пульс:", 28, bold=True)
         
-        self.lbl_pulse_val = QLabel("--")
-        self.lbl_pulse_val.setStyleSheet("color: #FF0000;")
-        self.lbl_pulse_val.setFont(QFont("Times New Roman", 42, QFont.Bold))
+        self.lbl_pulse_val = create_label("--", 42, bold=True, color=COLOR_RED)
         
         pulse_layout.addWidget(lbl_pulse_title)
         pulse_layout.addSpacing(10)
@@ -602,9 +462,9 @@ class RemoteForm(QWidget):
         
         shapes_layout = QHBoxLayout()
         shapes_layout.setSpacing(10)
-        self.lbl_sq_green = ShapeWidget("circle", "#C7C7C7")
-        self.lbl_sq_yellow = ShapeWidget("triangle", "#C7C7C7")
-        self.lbl_sq_red = ShapeWidget("square", "#C7C7C7")
+        self.lbl_sq_green = ShapeWidget("circle", COLOR_SHAPE_OFF, size=80)
+        self.lbl_sq_yellow = ShapeWidget("triangle", COLOR_SHAPE_OFF, size=80)
+        self.lbl_sq_red = ShapeWidget("square", COLOR_SHAPE_OFF, size=80)
         
         shapes_layout.addStretch()
         shapes_layout.addWidget(self.lbl_sq_green)
@@ -620,16 +480,7 @@ class RemoteForm(QWidget):
         self.btn_next = QPushButton("Стоп программа")
         self.btn_next.setFixedSize(130, 40)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet("""
-            QPushButton { 
-                background-color: #2C2C2C; 
-                color: white; 
-                border-radius: 6px; 
-                font-size: 14px; 
-                font-weight: 600; 
-            } 
-            QPushButton:hover { background-color: #44CC29; }
-        """)
+        self.btn_next.setStyleSheet(get_btn_style())
         self.btn_next.clicked.connect(self.stop_program)
         btn_layout.addWidget(self.btn_next)
         
