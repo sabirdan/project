@@ -144,11 +144,11 @@ class ControlForm(QWidget):
 
         top_line = QFrame()
         top_line.setFixedHeight(self.LINE_H)
-        top_line.setStyleSheet("background-color: #FFFFFF;")
+        top_line.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_line)
 
         content_container = QWidget()
-        content_container.setStyleSheet("background-color: #FFFFFF;")
+        content_container.setStyleSheet("background-color: white;")
         
         content_layout = QVBoxLayout(content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -345,7 +345,7 @@ class ControlForm(QWidget):
         term_layout.setContentsMargins(3, 0, 3, 0)
         
         term_box = QFrame()
-        term_box.setStyleSheet("background-color: black;")
+        term_box.setStyleSheet("background-color: #2C2C2C;")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term_text = QLabel("Состояние нормальное\nПульс --")
@@ -383,7 +383,7 @@ class ControlForm(QWidget):
         video_layout.setContentsMargins(0, 0, 0, 0)
         
         self.video_label = QLabel()
-        self.video_label.setStyleSheet("background-color: black;")
+        self.video_label.setStyleSheet("background-color: #2C2C2C;")
         video_layout.addWidget(self.video_label)
 
         self.video_cap = cv2.VideoCapture("videoBG.mp4")
@@ -401,7 +401,7 @@ class ControlForm(QWidget):
 
         top_strip = QFrame()
         top_strip.setFixedHeight(70)
-        top_strip.setStyleSheet("background-color: rgba(255, 255, 255, 150); border: none;")
+        top_strip.setStyleSheet("background-color: rgba(255, 255, 255, 100); border: none;")
         
         strip_layout = QHBoxLayout(top_strip)
         strip_layout.setContentsMargins(15, 0, 20, 0)
@@ -419,7 +419,7 @@ class ControlForm(QWidget):
 
         lbl_pulse = QLabel("Пульс:")
         lbl_pulse.setFont(QFont("Times New Roman", 28, QFont.Bold))
-        lbl_pulse.setStyleSheet("color: black; background: transparent;")
+        lbl_pulse.setStyleSheet("color: #2C2C2C; background: transparent;")
         strip_layout.addWidget(lbl_pulse)
 
         self.lbl_pulse_overlay = QLabel("--")
@@ -437,7 +437,7 @@ class ControlForm(QWidget):
         face_layout.setContentsMargins(2, 2, 2, 2)
         
         self.lbl_cam_feed = QLabel()
-        self.lbl_cam_feed.setStyleSheet("background-color: black;")
+        self.lbl_cam_feed.setStyleSheet("background-color: #2C2C2C;")
         face_layout.addWidget(self.lbl_cam_feed)
 
         top_row_layout.addWidget(top_strip, stretch=1, alignment=Qt.AlignTop)

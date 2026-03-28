@@ -47,7 +47,7 @@ class AuthScreen(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         content_container = QWidget(self)
@@ -68,7 +68,7 @@ class AuthScreen(QWidget):
         self.in_id.setFixedHeight(52)
         self.in_id.setFont(QFont("Times New Roman", 24))
         self.in_id.setStyleSheet(
-            "background-color: #FFFFFF; border: none; padding-left: 12px;"
+            "background-color: white; border: none; padding-left: 12px;"
         )
         
         validator = QRegularExpressionValidator(QRegularExpression(r"\d+"), self)
@@ -80,7 +80,7 @@ class AuthScreen(QWidget):
         self.btn_login.setStyleSheet("""
             QPushButton { 
                 background-color: #2C2C2C; 
-                color: #FFFFFF; 
+                color: white; 
                 border-radius: 8px; 
                 font-family: "Times New Roman"; 
                 font-size: 14px; 

@@ -124,7 +124,7 @@ class AnalysisForm(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
@@ -157,7 +157,7 @@ class AnalysisForm(QWidget):
     def _build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
-        header_container.setStyleSheet("background-color: #FFFFFF;")
+        header_container.setStyleSheet("background-color: white;")
         
         header_layout = QHBoxLayout(header_container)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -271,7 +271,7 @@ class AnalysisForm(QWidget):
         parent_layout.addWidget(header_container)
 
         body_container = QWidget()
-        body_container.setStyleSheet("background-color: #FFFFFF;")
+        body_container.setStyleSheet("background-color: white;")
         
         body_main_layout = QVBoxLayout(body_container)
         body_main_layout.setContentsMargins(0, 4, 0, 0)
@@ -395,7 +395,7 @@ class AnalysisForm(QWidget):
         term_content_layout.setContentsMargins(20, 0, 20, 20)
         
         term_box = QFrame()
-        term_box.setStyleSheet("background-color: black;")
+        term_box.setStyleSheet("background-color: #2C2C2C;")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term = QLabel("")

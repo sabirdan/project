@@ -69,7 +69,7 @@ class InstructionForm(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
@@ -83,7 +83,7 @@ class InstructionForm(QWidget):
     def _build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
-        header_container.setStyleSheet("background-color: #FFFFFF;")
+        header_container.setStyleSheet("background-color: white;")
         
         header_layout = QHBoxLayout(header_container)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -199,7 +199,7 @@ class InstructionForm(QWidget):
         parent_layout.addWidget(header_container)
 
         body_container = QWidget()
-        body_container.setStyleSheet("background-color: #FFFFFF;")
+        body_container.setStyleSheet("background-color: white;")
         
         body_main_layout = QVBoxLayout(body_container)
         body_main_layout.setContentsMargins(0, 4, 0, 0)
@@ -329,7 +329,7 @@ class InstructionForm(QWidget):
         self.btn_next.setStyleSheet("""
             QPushButton { 
                 background-color: #2C2C2C; 
-                color: #FFFFFF; 
+                color: white; 
                 border-radius: 6px; 
                 font-weight: bold; 
                 font-family: 'Times New Roman'; 

@@ -106,7 +106,7 @@ class InfoForm(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
@@ -184,7 +184,7 @@ class InfoForm(QWidget):
         parent_layout.addWidget(header)
 
         body_container = QWidget()
-        body_container.setStyleSheet("background-color: #FFFFFF;")
+        body_container.setStyleSheet("background-color: white;")
         
         body_main_layout = QVBoxLayout(body_container)
         body_main_layout.setContentsMargins(0, 4, 0, 0)
@@ -214,7 +214,7 @@ class InfoForm(QWidget):
         self.btn_identify_dummy = QPushButton("Идентификация")
         self.btn_identify_dummy.setFixedSize(200, 35)
         self.btn_identify_dummy.setStyleSheet(
-            "background-color: #2C2C2C; color: #FFFFFF; "
+            "background-color: #2C2C2C; color: white; "
             "border-radius: 6px; font-size: 16px;"
         )
         mh_layout.addWidget(self.btn_identify_dummy, alignment=Qt.AlignCenter)
@@ -400,7 +400,7 @@ class InfoForm(QWidget):
             self.status_icon.setPixmap(pixmap)
         
         banner_bg = '#44CC29' if ok else '#FF0000'
-        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: black;")
+        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: #2C2C2C;")
         
         banner_text = f"ID {_id_str(self.op_id)}" if ok else "ID не определен"
         self.id_banner.setText(banner_text)

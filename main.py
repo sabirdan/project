@@ -56,7 +56,7 @@ class StartScreen(QWidget):
 
         self.top_white_line = QWidget(self)
         self.top_white_line.setFixedHeight(4)
-        self.top_white_line.setStyleSheet("background-color: #FFFFFF;")
+        self.top_white_line.setStyleSheet("background-color: white;")
         main_layout.addWidget(self.top_white_line)
 
         content_container = QWidget(self)
@@ -89,7 +89,7 @@ class StartScreen(QWidget):
         b.setStyleSheet("""
             QPushButton { 
                 background-color: #2C2C2C; 
-                color: #FFFFFF; 
+                color: white; 
                 border-radius: 8px; 
                 font-weight: 600; 
                 font-size: 14px;

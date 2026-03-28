@@ -62,7 +62,7 @@ class RegistrationForm(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(4)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         self.content_container = QWidget(self)
@@ -126,7 +126,7 @@ class RegistrationForm(QWidget):
         parent_layout.addWidget(header)
 
         body_container = QWidget()
-        body_container.setStyleSheet("background-color: #FFFFFF;")
+        body_container.setStyleSheet("background-color: white;")
         
         body_main_layout = QVBoxLayout(body_container)
         body_main_layout.setContentsMargins(0, 4, 0, 0)
@@ -158,7 +158,7 @@ class RegistrationForm(QWidget):
         self.btn_identify.setCursor(Qt.PointingHandCursor)
         self.btn_identify.setStyleSheet("""
             QPushButton { 
-                background-color: #2C2C2C; color: #FFFFFF; 
+                background-color: #2C2C2C; color: white; 
                 border-radius: 6px; font-size: 16px; 
             }
             QPushButton:hover { background-color: #44CC29; }
@@ -215,7 +215,7 @@ class RegistrationForm(QWidget):
         self.cam_view = QLabel()
         self.cam_view.setFixedSize(300, 220)
         self.cam_view.setAlignment(Qt.AlignCenter)
-        self.cam_view.setStyleSheet("background-color: #FFFFFF;") 
+        self.cam_view.setStyleSheet("background-color: white;") 
         
         cam_layout = QHBoxLayout()
         cam_layout.addStretch()
@@ -265,7 +265,7 @@ class RegistrationForm(QWidget):
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet("""
             QPushButton { 
-                background-color: #2C2C2C; color: #FFFFFF; 
+                background-color: #2C2C2C; color: white; 
                 border-radius: 6px; font-weight: 600; 
             }
             QPushButton:hover { background-color: #44CC29; }

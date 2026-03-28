@@ -80,7 +80,7 @@ class AuthScreen(QWidget):
 
         top_white = QWidget(self)
         top_white.setFixedHeight(3)
-        top_white.setStyleSheet("background-color: #FFFFFF;")
+        top_white.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_white)
 
         content_container = QWidget(self)
@@ -101,7 +101,7 @@ class AuthScreen(QWidget):
         self.in_id.setFixedHeight(36)
         self.in_id.setFont(QFont("Times New Roman", 18))
         self.in_id.setStyleSheet(
-            "background-color: #FFFFFF; border: none; padding-left: 8px;"
+            "background-color: white; border: none; padding-left: 8px;"
         )
         self.in_id.setValidator(
             QRegularExpressionValidator(QRegularExpression(r"\d+"), self)
@@ -113,7 +113,7 @@ class AuthScreen(QWidget):
         self.btn_login.setStyleSheet("""
             QPushButton { 
                 background-color: #2C2C2C; 
-                color: #FFFFFF; 
+                color: white; 
                 border-radius: 6px; 
                 font-weight: 600; 
                 font-size: 13px; 
@@ -288,8 +288,7 @@ class RemoteForm(QWidget):
                 pass
 
         if not status:
-            self._set_waiting_state()
-            return
+            status = "NORMAL"
 
         self.current_status = status
         now = datetime.datetime.now()
@@ -306,19 +305,6 @@ class RemoteForm(QWidget):
 
         self._update_indication_block(pulse)
         self._update_terminal_block(pulse)
-
-    def _set_waiting_state(self):
-        self.mid_info.setText(
-            "Ожидание данных...\nОператор еще не перешел в режим «Управление»."
-        )
-        self.lbl_drive.setText("Время в дороге: <b>--:--:--</b>")
-        self.lbl_left.setText("Оставшееся время: <b>--:--:--</b>")
-        self.lbl_status.setText("Состояние: <span style='color:gray'>ОЖИДАНИЕ</span>")
-        self.lbl_pulse_val.setText("--")
-        
-        inactive_style = "background-color: #C7C7C7; border: 2px solid #44CC29;"
-        for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
-            sq.setStyleSheet(inactive_style)
 
     def _update_indication_block(self, pulse):
         self.lbl_pulse_val.setText(str(pulse) if pulse > 0 else "--")
@@ -428,7 +414,7 @@ class RemoteForm(QWidget):
 
         top_line = QFrame()
         top_line.setFixedHeight(4)
-        top_line.setStyleSheet("background-color: #FFFFFF;")
+        top_line.setStyleSheet("background-color: white;")
         main_layout.addWidget(top_line)
 
         header = QFrame()
@@ -465,11 +451,11 @@ class RemoteForm(QWidget):
 
         header_bottom_line = QFrame()
         header_bottom_line.setFixedHeight(4)
-        header_bottom_line.setStyleSheet("background-color: #FFFFFF;")
+        header_bottom_line.setStyleSheet("background-color: white;")
         main_layout.addWidget(header_bottom_line)
 
         body_container = QWidget()
-        body_container.setStyleSheet("background-color: #FFFFFF;")
+        body_container.setStyleSheet("background-color: white;")
         
         body_main_layout = QVBoxLayout(body_container)
         body_main_layout.setContentsMargins(0, 0, 0, 0)
@@ -515,7 +501,7 @@ class RemoteForm(QWidget):
         bottom_layout.setSpacing(4)
 
         self.left = QFrame(); self.left.setStyleSheet("background-color: #D9D9D9;")
-        self.mid = QFrame(); self.mid.setStyleSheet("background-color: black;")
+        self.mid = QFrame(); self.mid.setStyleSheet("background-color: #2C2C2C;")
         self.right = QFrame(); self.right.setStyleSheet("background-color: #D9D9D9;")
 
         bottom_layout.addWidget(self.left, stretch=1)
@@ -637,7 +623,7 @@ class RemoteForm(QWidget):
         self.btn_next.setStyleSheet("""
             QPushButton { 
                 background-color: #2C2C2C; 
-                color: #FFFFFF; 
+                color: white; 
                 border-radius: 6px; 
                 font-size: 14px; 
                 font-weight: 600; 
