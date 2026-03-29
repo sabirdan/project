@@ -4,13 +4,9 @@ from PyQt5.QtGui import QPainter, QBrush, QColor, QPolygon, QFont
 from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
-COLOR_RED = "#FF0000"
 COLOR_BTN_BG = "#2C2C2C"
 COLOR_GREEN = "#44CC29"
-COLOR_NORM_TEXT = "#009900"
-COLOR_WARN = "#FFD700"
-COLOR_CIRCLE_GREEN = "#7CE4D5"
-COLOR_SHAPE_OFF = "#C7C7C7"
+COLOR_DISABLED = "#C7C7C7"
 
 CSV_DIRECTORY = r"C:\Users\user\Desktop\Профессионалы межрегион 2026\project-championat"
 
@@ -53,7 +49,7 @@ class BaseWindow(QWidget):
         self.btn_close.setFixedSize(45, 30)
         self.btn_close.setCursor(Qt.PointingHandCursor)
         self.btn_close.setStyleSheet(
-            f"color: {COLOR_RED}; background: transparent; border: none; font-size: 24px; font-weight: bold;"
+            f"color: red; background: transparent; border: none; font-size: 24px; font-weight: bold;"
         )
         self.btn_close.clicked.connect(self.close)
         

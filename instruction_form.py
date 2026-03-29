@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_CIRCLE_GREEN, COLOR_WARN, COLOR_RED, get_btn_style
+    COLOR_BG, COLOR_GREEN, get_btn_style
 )
 
 class InstructionForm(BaseWindow):
@@ -59,12 +59,12 @@ class InstructionForm(BaseWindow):
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_analysis.clicked.connect(self._open_analysis)
         
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
-        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_control.clicked.connect(self._open_control)
         
         btn_hbox.addWidget(self.btn_instr)
@@ -181,7 +181,7 @@ class InstructionForm(BaseWindow):
             (
                 "Зеленый индикатор на видео означает, хорошее состояние оператора.\n"
                 "Оператор бодрствует. ЧСС в пределах нормы. 'Норма'", 
-                "circle", COLOR_CIRCLE_GREEN
+                "circle", "turquoise"
             ),
             (
                 "Желтый индикатор на видео означает 'Внимание' состояние\n"
@@ -189,13 +189,13 @@ class InstructionForm(BaseWindow):
                 "от нормы или повышение на 20%, но ниже критического порога.\n"
                 "Веки закрыты дольше 4 секунд (микросон). Наклон вперед/вбок\n"
                 "(эффект 'кивающей головы')", 
-                "triangle", COLOR_WARN
+                "triangle", "gold"
             ),
             (
                 "Красный индикатор на видео означает, 'Критическое' состояние:\n"
                 "ЧСС ниже на 30% от нормы или больше критического порога.\n"
                 "Наклон головы вперед/вбок (дольше 7 секунд) веки закрыты", 
-                "square", COLOR_RED
+                "square", "red"
             )
         ]
 

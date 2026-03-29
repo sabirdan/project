@@ -14,7 +14,7 @@ from utils import (
     _id_str, _draw_to_label_with_dpr, get_cv_face, 
     cv_compare_faces, _opencv_imread_unicode,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT, get_btn_style
+    COLOR_BTN_BG, COLOR_DISABLED, get_btn_style
 )
 
 class FaceWorker(QObject):
@@ -253,7 +253,7 @@ class InfoForm(BaseWindow):
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setStyleSheet(
             get_btn_style() + 
-            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
         self.btn_next.clicked.connect(self._finish)
         btn_next_layout.addWidget(self.btn_next)
@@ -345,7 +345,7 @@ class InfoForm(BaseWindow):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        banner_bg = COLOR_GREEN if ok else COLOR_RED
+        banner_bg = COLOR_GREEN if ok else "red"
         self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLOR_BTN_BG};")
         
         banner_text = f"ID {_id_str(self.op_id)}" if ok else "ID не определен"

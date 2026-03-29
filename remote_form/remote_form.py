@@ -14,8 +14,8 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from utils import (
     BaseWindow, ShapeWidget, create_label, _csv_path, _id_str, 
     _ensure_dirs, _parse_hms_to_seconds,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_RED, COLOR_WARN, 
-    COLOR_CIRCLE_GREEN, COLOR_NORM_TEXT, COLOR_SHAPE_OFF,
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
+    COLOR_DISABLED,
     create_line_edit, get_btn_style
 )
 
@@ -228,48 +228,48 @@ class RemoteForm(BaseWindow):
             self.player_warning.stop()
             self.player_alarm.stop()
             
-            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_NORM_TEXT}'>НОРМА</span>")
-            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_NORM_TEXT};")
+            self.lbl_status.setText(f"Состояние: <span style='color: green'>НОРМА</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: green;")
             
-            self.lbl_sq_green.setStyleSheet(f"background-color: {COLOR_CIRCLE_GREEN}; {border_blue}")
-            self.lbl_sq_yellow.setStyleSheet(COLOR_SHAPE_OFF)
-            self.lbl_sq_red.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_green.setStyleSheet(f"background-color: turquoise; {border_blue}")
+            self.lbl_sq_yellow.setStyleSheet(COLOR_DISABLED)
+            self.lbl_sq_red.setStyleSheet(COLOR_DISABLED)
             
-            self.lbl_sq_green.set_color(COLOR_CIRCLE_GREEN)
-            self.lbl_sq_yellow.set_color(COLOR_SHAPE_OFF)
-            self.lbl_sq_red.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_green.set_color("turquoise")
+            self.lbl_sq_yellow.set_color(COLOR_DISABLED)
+            self.lbl_sq_red.set_color(COLOR_DISABLED)
 
         elif self.current_status == "WARNING":
             if self.player_warning.state() != QMediaPlayer.PlayingState:
                 self.player_warning.play()
             self.player_alarm.stop()
             
-            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_WARN}'>ВНИМАНИЕ</span>")
-            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_WARN};")
+            self.lbl_status.setText(f"Состояние: <span style='color: gold'>ВНИМАНИЕ</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: gold;")
             
-            self.lbl_sq_green.setStyleSheet(COLOR_SHAPE_OFF)
-            self.lbl_sq_yellow.setStyleSheet(f"background-color: {COLOR_WARN}; {border_blue}")
-            self.lbl_sq_red.setStyleSheet(COLOR_SHAPE_OFF)
+            self.lbl_sq_green.setStyleSheet(COLOR_DISABLED)
+            self.lbl_sq_yellow.setStyleSheet(f"background-color: gold; {border_blue}")
+            self.lbl_sq_red.setStyleSheet(COLOR_DISABLED)
             
-            self.lbl_sq_green.set_color(COLOR_SHAPE_OFF)
-            self.lbl_sq_yellow.set_color(COLOR_WARN)
-            self.lbl_sq_red.set_color(COLOR_SHAPE_OFF)
+            self.lbl_sq_green.set_color(COLOR_DISABLED)
+            self.lbl_sq_yellow.set_color("gold")
+            self.lbl_sq_red.set_color(COLOR_DISABLED)
 
         elif self.current_status == "CRITICAL":
             self.player_warning.stop()
             if self.player_alarm.state() != QMediaPlayer.PlayingState:
                 self.player_alarm.play()
                 
-            self.lbl_status.setText(f"Состояние: <span style='color:{COLOR_RED}'>КРИТИЧНО!</span>")
-            self.lbl_pulse_val.setStyleSheet(f"color: {COLOR_RED};")
+            self.lbl_status.setText(f"Состояние: <span style='color: red'>КРИТИЧНО!</span>")
+            self.lbl_pulse_val.setStyleSheet(f"color: red;")
             
-            self.lbl_sq_green.setStyleSheet(COLOR_SHAPE_OFF)
-            self.lbl_sq_yellow.setStyleSheet(COLOR_SHAPE_OFF)
-            self.lbl_sq_red.setStyleSheet(f"background-color: {COLOR_RED}; {border_blue}")
+            self.lbl_sq_green.setStyleSheet(COLOR_DISABLED)
+            self.lbl_sq_yellow.setStyleSheet(COLOR_DISABLED)
+            self.lbl_sq_red.setStyleSheet(f"background-color: red; {border_blue}")
             
-            self.lbl_sq_green.set_color(COLOR_SHAPE_OFF)
-            self.lbl_sq_yellow.set_color(COLOR_SHAPE_OFF)
-            self.lbl_sq_red.set_color(COLOR_RED)
+            self.lbl_sq_green.set_color(COLOR_DISABLED)
+            self.lbl_sq_yellow.set_color(COLOR_DISABLED)
+            self.lbl_sq_red.set_color("red")
 
     def _update_terminal_block(self, pulse):
         p_str = str(pulse) if pulse > 0 else "--"
@@ -290,7 +290,7 @@ class RemoteForm(BaseWindow):
         self.player_alarm.stop()
 
         for sq in [self.lbl_sq_green, self.lbl_sq_yellow, self.lbl_sq_red]:
-            sq.set_color(COLOR_SHAPE_OFF)
+            sq.set_color(COLOR_DISABLED)
             sq.setStyleSheet(f"background-color: white; border: 2px solid {COLOR_GREEN};")
 
         self._refresh_left_info()
@@ -450,7 +450,7 @@ class RemoteForm(BaseWindow):
         pulse_layout = QHBoxLayout()
         lbl_pulse_title = create_label("Пульс:", 28, bold=True)
         
-        self.lbl_pulse_val = create_label("--", 42, bold=True, color=COLOR_RED)
+        self.lbl_pulse_val = create_label("", 42, bold=True, color="red")
         
         pulse_layout.addWidget(lbl_pulse_title)
         pulse_layout.addSpacing(10)
@@ -462,9 +462,9 @@ class RemoteForm(BaseWindow):
         
         shapes_layout = QHBoxLayout()
         shapes_layout.setSpacing(10)
-        self.lbl_sq_green = ShapeWidget("circle", COLOR_SHAPE_OFF, size=80)
-        self.lbl_sq_yellow = ShapeWidget("triangle", COLOR_SHAPE_OFF, size=80)
-        self.lbl_sq_red = ShapeWidget("square", COLOR_SHAPE_OFF, size=80)
+        self.lbl_sq_green = ShapeWidget("circle", COLOR_DISABLED, size=80)
+        self.lbl_sq_yellow = ShapeWidget("triangle", COLOR_DISABLED, size=80)
+        self.lbl_sq_red = ShapeWidget("square", COLOR_DISABLED, size=80)
         
         shapes_layout.addStretch()
         shapes_layout.addWidget(self.lbl_sq_green)

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, create_label, _csv_path,
-    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_BTN_BG, get_btn_style, create_line_edit
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, get_btn_style, create_line_edit
 )
 
 class SerialWorker(QObject):
@@ -154,7 +154,7 @@ class AnalysisForm(BaseWindow):
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_instr.clicked.connect(self._go_instruction)
         
         self.btn_analysis = QPushButton("Анализ")
@@ -163,7 +163,7 @@ class AnalysisForm(BaseWindow):
         
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
-        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_control.clicked.connect(self._go_control)
         
         btn_hbox.addWidget(self.btn_instr)

@@ -8,16 +8,9 @@ from PyQt5.QtGui import QImage, QPixmap, QGuiApplication, QPainter, QBrush, QCol
 from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
-COLOR_RED = "#FF0000"
 COLOR_BTN_BG = "#2C2C2C"
 COLOR_GREEN = "#44CC29"
-COLOR_PURPLE = "#8D3C7F"
-COLOR_DISABLED_BG = "#BDBDBD"
-COLOR_DISABLED_TEXT = "#6B6B6B"
-COLOR_NORM_TEXT = "#009900"
-COLOR_WARN = "#FFD700"
-COLOR_CIRCLE_GREEN = "#7CE4D5"
-COLOR_SHAPE_OFF = "#C7C7C7"
+COLOR_DISABLED = "#C7C7C7"
 
 CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
@@ -175,7 +168,7 @@ class BaseWindow(QWidget):
         self.btn_close.setFixedSize(45, 30)
         self.btn_close.setCursor(Qt.PointingHandCursor)
         self.btn_close.setStyleSheet(
-            f"color: {COLOR_RED}; background: transparent; border: none; font-size: 24px; font-weight: bold;"
+            f"color: red; background: transparent; border: none; font-size: 24px; font-weight: bold;"
         )
         self.btn_close.clicked.connect(self.close)
         

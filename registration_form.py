@@ -14,8 +14,7 @@ from utils import (
     _now_time_str, _draw_to_label_with_dpr, _opencv_save_jpg,
     get_cv_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT,
-    create_line_edit, get_btn_style
+    COLOR_BTN_BG, COLOR_DISABLED, create_line_edit, get_btn_style, 
 )
 
 class RegistrationForm(BaseWindow):
@@ -53,7 +52,6 @@ class RegistrationForm(BaseWindow):
         
         self._set_status(False, assigned=False)
         self.btn_next.setEnabled(False)
-        self.btn_identify.setEnabled(False)
         
         default_pix = QPixmap("assets/face.png")
         if not default_pix.isNull():
@@ -121,7 +119,7 @@ class RegistrationForm(BaseWindow):
         self.btn_identify.setCursor(Qt.PointingHandCursor)
         self.btn_identify.setStyleSheet(
             get_btn_style() + 
-            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
         self.btn_identify.clicked.connect(self._on_identify_clicked)
         mh_layout.addWidget(self.btn_identify, alignment=Qt.AlignCenter)
@@ -221,7 +219,7 @@ class RegistrationForm(BaseWindow):
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
             get_btn_style() + 
-            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED_BG}; color: {COLOR_DISABLED_TEXT}; }}"
+            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
         btn.clicked.connect(callback)
         return btn
@@ -248,7 +246,7 @@ class RegistrationForm(BaseWindow):
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
-        color = COLOR_GREEN if ok else COLOR_RED
+        color = COLOR_GREEN if ok else "red"
         self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLOR_BTN_BG};")
         
         hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
@@ -334,9 +332,18 @@ class RegistrationForm(BaseWindow):
         QTimer.singleShot(1200, self._try_verify)
 
     def _try_verify(self):
-        if self.last_frame is None or self.current_id is None:
-            self._set_status(False, assigned=self.current_id is not None)
+        if self.last_frame is None:
             return
+
+        if self.current_id is None:
+            operator, err = self._validate_fields()
+            if err:
+                self._stop_camera()
+                QMessageBox.warning(self, "Ошибка", f"Сначала заполните данные: {err}")
+                return
+            
+            self.current_id = self._append_csv_row(operator)
+            self._known_enc_cache = None
 
         live_face_gray, live_loc = get_cv_face(self.last_frame)
         
@@ -371,7 +378,6 @@ class RegistrationForm(BaseWindow):
             self.current_id = self._append_csv_row(operator)
             self._known_enc_cache = None
 
-        self.btn_identify.setEnabled(True)
         QMessageBox.information(self, "Успех", "Данные сохранены. Нажмите «Идентификация».")
 
     def _go_start(self):

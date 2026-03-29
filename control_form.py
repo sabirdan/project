@@ -15,8 +15,8 @@ from PyQt5.QtWidgets import (
 from utils import (
     _csv_path, _now_date_str, _now_time_str, _seconds_to_hms, _draw_to_label_with_dpr,
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_BTN_BG, 
-    COLOR_NORM_TEXT, COLOR_WARN, COLOR_RED, COLOR_CIRCLE_GREEN, COLOR_SHAPE_OFF
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
+    COLOR_DISABLED
 )
 from analysis_form import SerialWorker
 
@@ -60,6 +60,7 @@ class ControlForm(BaseWindow):
         self.current_frame = None
 
         content_layout = QVBoxLayout(self.content_container)
+        self.content_container.setStyleSheet("background-color: white;")
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(4)
 
@@ -91,6 +92,7 @@ class ControlForm(BaseWindow):
     def _build_ui(self, parent_layout):
         header_row = QWidget()
         header_row.setFixedHeight(120)
+        header_row.setStyleSheet("background-color: white;")
         header_layout = QHBoxLayout(header_row)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(4)
@@ -120,12 +122,12 @@ class ControlForm(BaseWindow):
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_instr.clicked.connect(self._go_instruction)
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: {COLOR_PURPLE}; {b_style} }}")
+        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
         self.btn_analysis.clicked.connect(self._go_analysis)
         
         self.btn_control = QPushButton("Управление")
@@ -185,6 +187,7 @@ class ControlForm(BaseWindow):
         id_vbox.addLayout(id_data_hbox)
 
         body_row = QWidget()
+        body_row.setStyleSheet("background-color: white;")
         body_layout = QHBoxLayout(body_row)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(4)
@@ -226,7 +229,7 @@ class ControlForm(BaseWindow):
         grid_layout.addWidget(self.lbl_start_val, 1, 1)
 
         lbl_t3 = create_label("Состояние оператора:", 12)
-        self.lbl_state_val = create_label("НОРМА", 12, bold=True, color=COLOR_NORM_TEXT)
+        self.lbl_state_val = create_label("НОРМА", 12, bold=True, color="green")
         grid_layout.addWidget(lbl_t3, 2, 0)
         grid_layout.addWidget(self.lbl_state_val, 2, 1)
         
@@ -307,9 +310,9 @@ class ControlForm(BaseWindow):
         strip_layout.setContentsMargins(15, 0, 20, 0)
         strip_layout.setSpacing(15)
 
-        self.lbl_sq_green = ShapeWidget("circle", COLOR_CIRCLE_GREEN)
-        self.lbl_sq_yellow = ShapeWidget("triangle", COLOR_WARN)
-        self.lbl_sq_red = ShapeWidget("square", COLOR_RED)
+        self.lbl_sq_green = ShapeWidget("circle", "turquoise")
+        self.lbl_sq_yellow = ShapeWidget("triangle", "gold")
+        self.lbl_sq_red = ShapeWidget("square", "red")
 
         strip_layout.addWidget(self.lbl_sq_green)
         strip_layout.addWidget(self.lbl_sq_yellow)
@@ -318,9 +321,11 @@ class ControlForm(BaseWindow):
         strip_layout.addStretch()
 
         lbl_pulse = create_label("Пульс:", 28, bold=True, color=COLOR_BTN_BG)
+        lbl_pulse.setStyleSheet("background: transparent;")
         strip_layout.addWidget(lbl_pulse)
 
-        self.lbl_pulse_overlay = create_label("--", 42, bold=True, color=COLOR_NORM_TEXT)
+        self.lbl_pulse_overlay = create_label("--", 42, bold=True, color="green")
+        self.lbl_pulse_overlay.setStyleSheet("background: transparent;")
         strip_layout.addWidget(self.lbl_pulse_overlay)
         
         strip_layout.addStretch()
@@ -486,9 +491,9 @@ class ControlForm(BaseWindow):
         self.player_alarm.stop()
         
         states = {
-            "NORMAL": ("НОРМА", COLOR_NORM_TEXT, COLOR_CIRCLE_GREEN, COLOR_SHAPE_OFF, COLOR_SHAPE_OFF, None),
-            "WARNING": ("ВНИМАНИЕ", COLOR_WARN, COLOR_SHAPE_OFF, COLOR_WARN, COLOR_SHAPE_OFF, self.player_warning),
-            "CRITICAL": ("КРИТИЧНО!", COLOR_RED, COLOR_SHAPE_OFF, COLOR_SHAPE_OFF, COLOR_RED, self.player_alarm)
+            "NORMAL": ("НОРМА", "green", "turquoise", COLOR_DISABLED, COLOR_DISABLED, None),
+            "WARNING": ("ВНИМАНИЕ", "gold", COLOR_DISABLED, "gold", COLOR_DISABLED, self.player_warning),
+            "CRITICAL": ("КРИТИЧНО!", "red", COLOR_DISABLED, COLOR_DISABLED, "red", self.player_alarm)
         }
         
         text, color, c_green, c_yellow, c_red, player = states[self.current_state]
