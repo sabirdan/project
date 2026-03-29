@@ -14,9 +14,8 @@ from utils import (
     _id_str, _draw_to_label_with_dpr, get_cv_face, 
     cv_compare_faces, _opencv_imread_unicode,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT
+    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT, get_btn_style
 )
-from main import get_btn_style
 
 class FaceWorker(QObject):
     finished = pyqtSignal(bool, object)

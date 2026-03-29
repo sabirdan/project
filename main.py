@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     _now_time_str, _ensure_dirs, _csv_path, _ensure_csv,
-    BaseWindow, create_label
+    BaseWindow, create_label, create_label, get_btn_style
 )
 
 from registration_form import RegistrationForm

@@ -6,9 +6,8 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_CIRCLE_GREEN, COLOR_WARN, COLOR_RED
+    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_CIRCLE_GREEN, COLOR_WARN, COLOR_RED, get_btn_style
 )
-from main import get_btn_style
 
 class InstructionForm(BaseWindow):
     def __init__(self, operator_row: dict = None):
