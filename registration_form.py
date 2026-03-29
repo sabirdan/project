@@ -14,9 +14,9 @@ from utils import (
     _now_time_str, _draw_to_label_with_dpr, _opencv_save_jpg,
     get_cv_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT
+    COLOR_RED, COLOR_BTN_BG, COLOR_DISABLED_BG, COLOR_DISABLED_TEXT,
+    create_line_edit, get_btn_style
 )
-from main import create_line_edit, get_btn_style
 
 class RegistrationForm(BaseWindow):
     def __init__(self, start_screen, csv_file: str, ops_dir: str, software_start_time: str):

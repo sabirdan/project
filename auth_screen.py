@@ -2,8 +2,7 @@ from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtWidgets import QPushButton, QMessageBox, QVBoxLayout, QHBoxLayout
 
-from utils import _find_operator_by_id, BaseWindow, create_label
-from main import create_line_edit, get_btn_style
+from utils import _find_operator_by_id, BaseWindow, create_label, create_line_edit, get_btn_style
 from info_form import InfoForm
 
 class AuthScreen(BaseWindow):

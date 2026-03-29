@@ -15,9 +15,9 @@ from utils import (
     BaseWindow, ShapeWidget, create_label, _csv_path, _id_str, 
     _ensure_dirs, _parse_hms_to_seconds,
     COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_RED, COLOR_WARN, 
-    COLOR_CIRCLE_GREEN, COLOR_NORM_TEXT, COLOR_SHAPE_OFF
+    COLOR_CIRCLE_GREEN, COLOR_NORM_TEXT, COLOR_SHAPE_OFF,
+    create_line_edit, get_btn_style
 )
-from main import create_line_edit, get_btn_style
 
 class AuthScreen(BaseWindow):
     def __init__(self, remote_form):

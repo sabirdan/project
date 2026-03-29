@@ -12,9 +12,8 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, create_label, _csv_path,
-    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_BTN_BG
+    COLOR_BG, COLOR_GREEN, COLOR_PURPLE, COLOR_BTN_BG, get_btn_style, create_line_edit
 )
-from main import get_btn_style, create_line_edit
 
 class SerialWorker(QObject):
     data_received = pyqtSignal(str, str, str)

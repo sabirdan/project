@@ -5,7 +5,7 @@ from datetime import datetime
 import cv2
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QImage, QPixmap, QGuiApplication, QPainter, QBrush, QColor, QPolygon, QFont
-from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
 COLOR_RED = "#FF0000"
@@ -271,6 +271,26 @@ def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
     pm = QPixmap.fromImage(q_img)
     pm.setDevicePixelRatio(dpr)
     label.setPixmap(pm)
+
+def create_line_edit(height=52, font_size=24, padding=12):
+    le = QLineEdit()
+    le.setFixedHeight(height)
+    le.setFont(QFont("Times New Roman", font_size))
+    le.setStyleSheet(f"background-color: white; border: none; padding-left: {padding}px;")
+    return le
+
+def get_btn_style():
+    return f"""
+        QPushButton {{ 
+            background-color: {COLOR_BTN_BG}; 
+            color: white; 
+            border-radius: 8px; 
+            font-family: "Times New Roman"; 
+            font-size: 14px; 
+            font-weight: 600; 
+        }} 
+        QPushButton:hover {{ background-color: {COLOR_GREEN}; }}
+    """
 
 # ФАЙЛОВЫЕ ОПЕРАЦИИ И СОХРАНЕНИЕ
 

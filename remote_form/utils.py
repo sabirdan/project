@@ -12,7 +12,7 @@ COLOR_WARN = "#FFD700"
 COLOR_CIRCLE_GREEN = "#7CE4D5"
 COLOR_SHAPE_OFF = "#C7C7C7"
 
-CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+CSV_DIRECTORY = r"C:\Users\user\Desktop\Профессионалы межрегион 2026\project-championat"
 
 def _csv_path(base_dir: str = None):
     return os.path.join(CSV_DIRECTORY, "operators_db.csv")
@@ -108,3 +108,23 @@ def create_label(text, font_size=14, bold=False, color=None, align=None):
     if align:
         lbl.setAlignment(align)
     return lbl
+
+def create_line_edit(height=52, font_size=24, padding=12):
+    le = QLineEdit()
+    le.setFixedHeight(height)
+    le.setFont(QFont("Times New Roman", font_size))
+    le.setStyleSheet(f"background-color: white; border: none; padding-left: {padding}px;")
+    return le
+
+def get_btn_style():
+    return f"""
+        QPushButton {{ 
+            background-color: {COLOR_BTN_BG}; 
+            color: white; 
+            border-radius: 8px; 
+            font-family: "Times New Roman"; 
+            font-size: 14px; 
+            font-weight: 600; 
+        }} 
+        QPushButton:hover {{ background-color: {COLOR_GREEN}; }}
+    """
