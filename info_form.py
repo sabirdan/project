@@ -10,11 +10,11 @@ from PyQt5.QtWidgets import (
 
 from instruction_form import InstructionForm
 from utils import (
-    _make_icon, _parse_hms_to_seconds, _seconds_to_hms, 
-    _id_str, _draw_to_label_with_dpr, get_cv_face, 
+    make_icon, parse_hms_to_seconds, seconds_to_hms, 
+    id_str, draw_to_label_with_dpr, get_cv_face, 
     cv_compare_faces, _opencv_imread_unicode,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_BTN_BG, COLOR_DISABLED, get_btn_style
+    COLORbtn_BG, COLOR_DISABLED, getbtn_style
 )
 
 class FaceWorker(QObject):
@@ -54,7 +54,7 @@ class InfoForm(BaseWindow):
         self.worker.moveToThread(self.face_thread)
 
         self.sig_process.connect(self.worker.process_frame)
-        self.worker.finished.connect(self._on_verification_result)
+        self.worker.finished.connect(self.on_verification_result)
         self.face_thread.start()
 
         self.is_processing = False
@@ -64,14 +64,14 @@ class InfoForm(BaseWindow):
         self.last_frame = None
 
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self._grab_frame)
+        self.timer.timeout.connect(self.grab_frame)
         
         self.presence_timer = QTimer(self)
-        self.presence_timer.timeout.connect(self._check_presence)
+        self.presence_timer.timeout.connect(self.check_presence)
         self.presence_timer.setInterval(1000)
         
         self.clock_timer = QTimer(self)
-        self.clock_timer.timeout.connect(self._update_clock)
+        self.clock_timer.timeout.connect(self.update_clock)
         self.clock_timer.start(1000)
 
         self.is_verified = False
@@ -82,14 +82,14 @@ class InfoForm(BaseWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._build_ui(content_layout)
-        self._reset_state()
-        self._update_status()
+        self.build_ui(content_layout)
+        self.reset_state()
+        self.update_status()
 
-        if self._start_camera():
-            QTimer.singleShot(1200, self._try_verify)
+        if self.start_camera():
+            QTimer.singleShot(1200, self.try_verify)
 
-    def _update_clock(self):
+    def update_clock(self):
         now_str = datetime.now().strftime('%d.%m.%Y / %H:%M:%S')
         self.lbl_dt.setText(f"Дата/время: <b>{now_str}</b>")
 
@@ -102,15 +102,15 @@ class InfoForm(BaseWindow):
         self.op_id = int(id_raw)
         
         self._ref_enc_cache = None
-        self._reset_state()
-        self._refresh_left_info()
-        self._update_status()
-        self._stop_camera()
+        self.reset_state()
+        self.refresh_left_info()
+        self.update_status()
+        self.stop_camera()
         
-        if self._start_camera():
-            QTimer.singleShot(1200, self._try_verify)
+        if self.start_camera():
+            QTimer.singleShot(1200, self.try_verify)
 
-    def _reset_state(self):
+    def reset_state(self):
         self.is_verified = False
         self.is_present = False
         self.is_processing = False
@@ -118,7 +118,7 @@ class InfoForm(BaseWindow):
         if hasattr(self, 'presence_timer'):
             self.presence_timer.stop()
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
         header.setStyleSheet(f"background-color: {COLOR_GREEN};")
@@ -175,7 +175,7 @@ class InfoForm(BaseWindow):
         mh_layout = QHBoxLayout(mid_header)
         self.btn_identify_dummy = QPushButton("Идентификация")
         self.btn_identify_dummy.setFixedSize(200, 35)
-        self.btn_identify_dummy.setStyleSheet(get_btn_style())
+        self.btn_identify_dummy.setStyleSheet(getbtn_style())
         mh_layout.addWidget(self.btn_identify_dummy, alignment=Qt.AlignCenter)
 
         rh_layout = QVBoxLayout(right_header)
@@ -203,7 +203,7 @@ class InfoForm(BaseWindow):
         body_main_layout.addWidget(bottom_row, stretch=1)
         parent_layout.addWidget(body_container, stretch=1)
 
-        self._build_left_info()
+        self.build_left_info()
 
         mid_layout = QVBoxLayout(self.mid)
         mid_layout.setContentsMargins(15, 20, 15, 20)
@@ -252,14 +252,14 @@ class InfoForm(BaseWindow):
         self.btn_next.setFixedSize(100, 34)
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setStyleSheet(
-            get_btn_style() + 
+            getbtn_style() + 
             f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
-        self.btn_next.clicked.connect(self._finish)
+        self.btn_next.clicked.connect(self.finish)
         btn_next_layout.addWidget(self.btn_next)
         right_layout.addLayout(btn_next_layout)
 
-    def _build_left_info(self):
+    def build_left_info(self):
         left_layout = QVBoxLayout(self.left)
         left_layout.setContentsMargins(15, 10, 15, 20)
         left_layout.setSpacing(10)
@@ -297,9 +297,9 @@ class InfoForm(BaseWindow):
         left_layout.addWidget(self.lbl_left)
 
         left_layout.addStretch()
-        self._refresh_left_info()
+        self.refresh_left_info()
 
-    def _refresh_left_info(self):
+    def refresh_left_info(self):
         row = self.operator_row or {}
         
         full_name = " ".join(filter(None, [
@@ -325,10 +325,10 @@ class InfoForm(BaseWindow):
         drive = (row.get("drive_duration") or "00:00:00").strip()
         self.lbl_drive.setText(f"Время в дороге: <span style='padding-left: 10px;'><b>{drive}</b></span>")
         
-        remaining = 9 * 3600 - _parse_hms_to_seconds(drive)
-        self.lbl_left.setText(f"Оставшееся время: <span style='padding-left: 10px;'><b>{_seconds_to_hms(remaining)}</b></span>")
+        remaining = 9 * 3600 - parse_hms_to_seconds(drive)
+        self.lbl_left.setText(f"Оставшееся время: <span style='padding-left: 10px;'><b>{seconds_to_hms(remaining)}</b></span>")
 
-        id_img = f"ID_{_id_str(self.op_id)}.jpg"
+        id_img = f"ID_{id_str(self.op_id)}.jpg"
         img_path = os.path.join(self.ops_dir, id_img)
         if os.path.exists(img_path):
             pm = QPixmap(img_path)
@@ -336,19 +336,19 @@ class InfoForm(BaseWindow):
                 pm.scaled(90, 100, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
             )
 
-    def _update_status(self):
+    def update_status(self):
         ok = self.is_verified and self.is_present
         
         self.status_text.setText("Оператор определен" if ok else "Оператор не определен")
         
-        pixmap = _make_icon(ok)
+        pixmap = make_icon(ok)
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
         banner_bg = COLOR_GREEN if ok else "red"
-        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLOR_BTN_BG};")
+        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLORbtn_BG};")
         
-        banner_text = f"ID {_id_str(self.op_id)}" if ok else "ID не определен"
+        banner_text = f"ID {id_str(self.op_id)}" if ok else "ID не определен"
         self.id_banner.setText(banner_text)
         
         hint_text = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
@@ -356,19 +356,19 @@ class InfoForm(BaseWindow):
         
         self.btn_next.setEnabled(ok)
 
-    def _start_camera(self):
+    def start_camera(self):
         self.cap = cv2.VideoCapture(0)
         self.timer.start(30)
         return True
 
-    def _stop_camera(self):
+    def stop_camera(self):
         self.timer.stop()
         self.presence_timer.stop()
         if self.cap:
             self.cap.release()
             self.cap = None
 
-    def _grab_frame(self):
+    def grab_frame(self):
         if not self.cap:
             return
             
@@ -381,13 +381,13 @@ class InfoForm(BaseWindow):
                 color = (0, 255, 0) if self.last_face_ok else (0, 0, 255)
                 cv2.rectangle(self.last_frame, (x, y), (right, b), color, 2)
                 
-            _draw_to_label_with_dpr(self.last_frame, self.cam_view)
+            draw_to_label_with_dpr(self.last_frame, self.cam_view)
 
-    def _get_reference_encoding_cached(self):
+    def get_reference_encoding_cached(self):
         if self._ref_enc_cache is not None:
             return self._ref_enc_cache
             
-        id_img = f"ID_{_id_str(self.op_id)}.jpg"
+        id_img = f"ID_{id_str(self.op_id)}.jpg"
         ref_path = os.path.join(self.ops_dir, id_img)
         ref_img = _opencv_imread_unicode(ref_path)
         
@@ -396,26 +396,26 @@ class InfoForm(BaseWindow):
             
         return self._ref_enc_cache
 
-    def _check_presence(self):
+    def check_presence(self):
         if self.is_verified and self.last_frame is not None and not self.is_processing:
-            ref_enc = self._get_reference_encoding_cached()
+            ref_enc = self.get_reference_encoding_cached()
             if ref_enc is not None:
                 self.is_processing = True
                 self.sig_process.emit(self.last_frame.copy(), ref_enc)
 
-    def _on_verification_result(self, is_same_person, loc):
+    def on_verification_result(self, is_same_person, loc):
         self.is_processing = False
         self.is_present = is_same_person
         self.last_face_loc = loc
         self.last_face_ok = is_same_person
-        self._update_status()
+        self.update_status()
 
-    def _try_verify(self):
+    def try_verify(self):
         if self.last_frame is None:
-            QTimer.singleShot(500, self._try_verify)
+            QTimer.singleShot(500, self.try_verify)
             return
 
-        ref_face_gray = self._get_reference_encoding_cached()
+        ref_face_gray = self.get_reference_encoding_cached()
         if ref_face_gray is None:
             QMessageBox.critical(self, "Ошибка", "Эталонное лицо не найдено в файле.")
             return
@@ -426,14 +426,14 @@ class InfoForm(BaseWindow):
 
         if loc is None or not cv_compare_faces(ref_face_gray, live_face_gray):
             self.is_verified = False
-            _draw_to_label_with_dpr(self.last_frame, self.cam_view)
+            draw_to_label_with_dpr(self.last_frame, self.cam_view)
             QApplication.processEvents()
             
             msg = "Пройти идентификацию заново?"
             res = QMessageBox.question(self, "Идентификация", msg, QMessageBox.Yes | QMessageBox.No)
             
             if res == QMessageBox.Yes:
-                QTimer.singleShot(700, self._try_verify)
+                QTimer.singleShot(700, self.try_verify)
             return
 
         self.is_verified = True
@@ -443,13 +443,13 @@ class InfoForm(BaseWindow):
         frame_draw = self.last_frame.copy()
         y, right, b, x = loc
         cv2.rectangle(frame_draw, (x, y), (right, b), (0, 255, 0), 2)
-        _draw_to_label_with_dpr(frame_draw, self.cam_view)
+        draw_to_label_with_dpr(frame_draw, self.cam_view)
         QApplication.processEvents()
         
-        self._update_status()
+        self.update_status()
 
-    def _finish(self):
-        self._stop_camera()
+    def finish(self):
+        self.stop_camera()
         
         if self.face_thread.isRunning():
             self.face_thread.quit()
@@ -459,8 +459,8 @@ class InfoForm(BaseWindow):
         self.instr_form.show()
         self.hide()
 
-    def closeEvent(self, event):
-        self._stop_camera()
+    def close_event(self, event):
+        self.stop_camera()
         
         if self.face_thread.isRunning():
             self.face_thread.quit()
@@ -469,4 +469,4 @@ class InfoForm(BaseWindow):
         if self.auth_screen:
             self.auth_screen.show()
             
-        super().closeEvent(event)
+        super().close_event(event)

@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtWidgets import QPushButton, QMessageBox, QVBoxLayout, QHBoxLayout
 
-from utils import _find_operator_by_id, BaseWindow, create_label, create_line_edit, get_btn_style
+from utils import find_operator_by_id, BaseWindow, create_label, create_line_edit, getbtn_style
 from info_form import InfoForm
 
 class AuthScreen(BaseWindow):
@@ -32,23 +32,23 @@ class AuthScreen(BaseWindow):
         self.btn_login = QPushButton("Авторизоваться", self)
         self.btn_login.setFixedSize(156, 52)
         self.btn_login.setCursor(Qt.PointingHandCursor)
-        self.btn_login.setStyleSheet(get_btn_style())
+        self.btn_login.setStyleSheet(getbtn_style())
 
         row.addWidget(self.in_id, 1)
         row.addWidget(self.btn_login, 0)
         root.addLayout(row)
 
-        self.btn_login.clicked.connect(self._on_login)
-        self.in_id.returnPressed.connect(self._on_login)
+        self.btn_login.clicked.connect(self.on_login)
+        self.in_id.returnPressed.connect(self.on_login)
 
-    def _on_login(self):
+    def on_login(self):
         raw = self.in_id.text().strip()
         
         if not raw.isdigit() or int(raw) <= 0:
             QMessageBox.warning(self, "Авторизация", "Введите корректный числовой ID больше 0.")
             return
 
-        row = _find_operator_by_id(self.csv_file, int(raw))
+        row = find_operator_by_id(self.csv_file, int(raw))
         
         if not row:
             QMessageBox.warning(self, "Авторизация", "Оператор с таким ID не найден.")
@@ -64,7 +64,7 @@ class AuthScreen(BaseWindow):
         self.info_form.show()
         self.hide()
 
-    def closeEvent(self, event):
+    def close_event(self, event):
         if self.start_screen:
             self.start_screen.show()
-        super().closeEvent(event)
+        super().close_event(event)

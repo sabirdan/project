@@ -13,9 +13,9 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    _csv_path, _now_date_str, _now_time_str, _seconds_to_hms, _draw_to_label_with_dpr,
+    csv_path, now_date_str, now_time_str, seconds_to_hms, draw_to_label_with_dpr,
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
+    COLOR_BG, COLOR_GREEN, COLORbtn_BG, 
     COLOR_DISABLED
 )
 from analysis_form import SerialWorker
@@ -25,7 +25,7 @@ class ControlForm(BaseWindow):
         super().__init__(1000, 484, "НейроБодр - Мониторинг")
         
         self.operator_row = operator_row or {}
-        self.csv_path = _csv_path()
+        self.csv_path = csv_path()
 
         self.pulse_norm_min = 60
         self.pulse_norm_max = 80
@@ -34,7 +34,7 @@ class ControlForm(BaseWindow):
         self.eyes_closed_start_time = None
         self.head_tilted_start_time = None
         
-        self._load_settings_from_csv()
+        self.load_settings_from_csv()
         
         self.analysis_form = None
         self.instr_form = None
@@ -64,10 +64,10 @@ class ControlForm(BaseWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(4)
 
-        self._build_ui(content_layout)
-        self._init_logic()
+        self.build_ui(content_layout)
+        self.init_logic()
 
-    def _load_settings_from_csv(self):
+    def load_settings_from_csv(self):
         target_id = str(self.operator_row.get("id", ""))
         if not target_id:
             return
@@ -89,7 +89,7 @@ class ControlForm(BaseWindow):
                         self.pulse_crit_threshold = int(crit_raw)
                     break
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header_row = QWidget()
         header_row.setFixedHeight(120)
         header_row.setStyleSheet("background-color: white;")
@@ -123,12 +123,12 @@ class ControlForm(BaseWindow):
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
         self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_instr.clicked.connect(self._go_instruction)
+        self.btn_instr.clicked.connect(self.go_instruction)
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
         self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_analysis.clicked.connect(self._go_analysis)
+        self.btn_analysis.clicked.connect(self.go_analysis)
         
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
@@ -195,23 +195,23 @@ class ControlForm(BaseWindow):
         self.left_col = QFrame()
         self.left_col.setStyleSheet(f"background-color: {COLOR_BG};")
         self.video_col = QFrame()
-        self.video_col.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        self.video_col.setStyleSheet(f"background-color: {COLORbtn_BG};")
         
         body_layout.addWidget(self.left_col, stretch=1)
         body_layout.addWidget(self.video_col, stretch=2)
         
         parent_layout.addWidget(body_row, stretch=1)
 
-        self._build_left_info_panel()
-        self._build_video_area()
+        self.build_left_info_panel()
+        self.build_video_area()
 
-    def _build_left_info_panel(self):
+    def build_left_info_panel(self):
         left_layout = QVBoxLayout(self.left_col)
         left_layout.setContentsMargins(0, 10, 0, 0)
         left_layout.setSpacing(0)
 
-        dt_str = _now_date_str() + " / " + _now_time_str()
-        start_str = self.operator_row.get("software_start_time", _now_time_str())
+        dt_str = now_date_str() + " / " + now_time_str()
+        start_str = self.operator_row.get("software_start_time", now_time_str())
 
         grid_widget = QWidget()
         grid_layout = QGridLayout(grid_widget)
@@ -254,7 +254,7 @@ class ControlForm(BaseWindow):
         term_layout.setContentsMargins(3, 0, 3, 0)
         
         term_box = QFrame()
-        term_box.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        term_box.setStyleSheet(f"background-color: {COLORbtn_BG};")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term_text = create_label("Состояние нормальное\nПульс --", 10, color="white", align=Qt.AlignTop | Qt.AlignLeft)
@@ -281,17 +281,17 @@ class ControlForm(BaseWindow):
         self.lbl_clock = create_label("09:00", 42, bold=True, align=Qt.AlignCenter)
         left_layout.addWidget(self.lbl_clock, stretch=1)
 
-    def _build_video_area(self):
+    def build_video_area(self):
         video_layout = QVBoxLayout(self.video_col)
         video_layout.setContentsMargins(0, 0, 0, 0)
         
         self.video_label = QLabel()
-        self.video_label.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        self.video_label.setStyleSheet(f"background-color: {COLORbtn_BG};")
         video_layout.addWidget(self.video_label)
 
         self.video_cap = cv2.VideoCapture("videoBG.mp4")
         self.timer_video = QTimer(self)
-        self.timer_video.timeout.connect(self._update_video_frame)
+        self.timer_video.timeout.connect(self.update_video_frame)
         self.timer_video.start(33)
 
         overlay_layout = QVBoxLayout(self.video_label)
@@ -320,7 +320,7 @@ class ControlForm(BaseWindow):
 
         strip_layout.addStretch()
 
-        lbl_pulse = create_label("Пульс:", 28, bold=True, color=COLOR_BTN_BG)
+        lbl_pulse = create_label("Пульс:", 28, bold=True, color=COLORbtn_BG)
         lbl_pulse.setStyleSheet("background: transparent;")
         strip_layout.addWidget(lbl_pulse)
 
@@ -338,7 +338,7 @@ class ControlForm(BaseWindow):
         face_layout.setContentsMargins(2, 2, 2, 2)
         
         self.lbl_cam_feed = QLabel()
-        self.lbl_cam_feed.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        self.lbl_cam_feed.setStyleSheet(f"background-color: {COLORbtn_BG};")
         face_layout.addWidget(self.lbl_cam_feed)
 
         top_row_layout.addWidget(top_strip, stretch=1, alignment=Qt.AlignTop)
@@ -347,16 +347,16 @@ class ControlForm(BaseWindow):
         overlay_layout.addLayout(top_row_layout)
         overlay_layout.addStretch()
 
-    def _init_logic(self):
+    def init_logic(self):
         self.thread_pulse = QThread()
         self.worker_pulse = SerialWorker(port="COM5")
         self.worker_pulse.moveToThread(self.thread_pulse)
         self.thread_pulse.started.connect(self.worker_pulse.run)
-        self.worker_pulse.data_received.connect(self._on_pulse_data)
+        self.worker_pulse.data_received.connect(self.on_pulse_data)
         self.thread_pulse.start()
 
         self.timer_main = QTimer(self)
-        self.timer_main.timeout.connect(self._update_time_logic)
+        self.timer_main.timeout.connect(self.update_time_logic)
         self.timer_main.start(1000)
 
         self.cap = cv2.VideoCapture(0)
@@ -367,12 +367,12 @@ class ControlForm(BaseWindow):
         self.eye_cascade = cv2.CascadeClassifier(eye_path)
         
         self.timer_cam = QTimer(self)
-        self.timer_cam.timeout.connect(self._process_camera_frame)
+        self.timer_cam.timeout.connect(self.process_camera_frame)
         self.timer_cam.start(30)
         
-        self._update_time_ui()
+        self.update_time_ui()
 
-    def _update_video_frame(self):
+    def update_video_frame(self):
         if not self.video_cap or not self.video_cap.isOpened():
             return
             
@@ -395,12 +395,12 @@ class ControlForm(BaseWindow):
         )
 
     @pyqtSlot(str, str, str)
-    def _on_pulse_data(self, status_conn, status_pulse, pulse_str):
+    def on_pulse_data(self, status_conn, status_pulse, pulse_str):
         self.current_pulse_val = int(pulse_str) if pulse_str.isdigit() else 0
         self.lbl_pulse_overlay.setText(pulse_str if pulse_str.isdigit() else "--")
-        self._check_status()
+        self.check_status()
 
-    def _process_camera_frame(self):
+    def process_camera_frame(self):
         ret, frame = self.cap.read()
         if not ret:
             return
@@ -444,10 +444,10 @@ class ControlForm(BaseWindow):
         else:
             self.head_tilted_start_time = None
 
-        _draw_to_label_with_dpr(frame, self.lbl_cam_feed)
-        self._check_status()
+        draw_to_label_with_dpr(frame, self.lbl_cam_feed)
+        self.check_status()
 
-    def _check_status(self):
+    def check_status(self):
         curr_time = time.time()
         
         sec_closed = 0
@@ -471,8 +471,8 @@ class ControlForm(BaseWindow):
 
         if new_state != self.current_state:
             self.current_state = new_state
-            self._update_ui_state()
-            self._update_csv_log()
+            self.update_ui_state()
+            self.update_csv_log()
         
         p_str = str(self.current_pulse_val) if self.current_pulse_val > 0 else "--"
         
@@ -486,7 +486,7 @@ class ControlForm(BaseWindow):
             msg = f"Состояние критичное!\nПульс {p_str}\nЗапуск звукового оповещения!"
             self.lbl_term_text.setText(msg)
 
-    def _update_ui_state(self):
+    def update_ui_state(self):
         self.player_warning.stop()
         self.player_alarm.stop()
         
@@ -509,8 +509,8 @@ class ControlForm(BaseWindow):
         if player:
             player.play()
 
-    def _update_time_logic(self):
-        dt_text = _now_date_str() + " / " + _now_time_str()
+    def update_time_logic(self):
+        dt_text = now_date_str() + " / " + now_time_str()
         self.lbl_dt_val.setText(dt_text)
         
         if self.remaining_seconds > 0:
@@ -523,19 +523,19 @@ class ControlForm(BaseWindow):
             self.lbl_clock.setText("00:00")
             QMessageBox.information(self, "Конец", "Время вышло!")
             
-        self._update_csv_log()
+        self.update_csv_log()
 
-    def _update_time_ui(self):
-        dt_text = _now_date_str() + " / " + _now_time_str()
+    def update_time_ui(self):
+        dt_text = now_date_str() + " / " + now_time_str()
         self.lbl_dt_val.setText(dt_text)
 
-    def _update_csv_log(self):
+    def update_csv_log(self):
         target_id = str(self.operator_row.get("id", ""))
         if not target_id:
             return
 
         delta = datetime.datetime.now() - self.start_app_time
-        drive_str = _seconds_to_hms(delta.total_seconds())
+        drive_str = seconds_to_hms(delta.total_seconds())
         
         updates = {
             "current_pulse": str(self.current_pulse_val), 
@@ -565,22 +565,22 @@ class ControlForm(BaseWindow):
         except Exception as e:
             print(f"Ошибка обновления CSV: {e}")
 
-    def _go_instruction(self):
+    def go_instruction(self):
         self.close()
         from instruction_form import InstructionForm
         if not self.instr_form:
             self.instr_form = InstructionForm(self.operator_row)
         self.instr_form.show()
 
-    def _go_analysis(self):
+    def go_analysis(self):
         self.close()
         from analysis_form import AnalysisForm
         if not self.analysis_form:
             self.analysis_form = AnalysisForm(self.operator_row)
         self.analysis_form.show()
 
-    def closeEvent(self, event):
-        self._update_csv_log()
+    def close_event(self, event):
+        self.update_csv_log()
         
         if hasattr(self, 'worker_pulse'):
             self.worker_pulse.stop()
@@ -602,4 +602,4 @@ class ControlForm(BaseWindow):
         self.player_warning.stop()
         self.player_alarm.stop()
         
-        super().closeEvent(event)
+        super().close_event(event)

@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    _now_time_str, _ensure_dirs, _csv_path, _ensure_csv,
-    BaseWindow, create_label, create_label, get_btn_style
+    now_time_str, _ensure_dirs, csv_path, ensure_csv,
+    BaseWindow, create_label, create_label, getbtn_style
 )
 
 from registration_form import RegistrationForm
@@ -18,11 +18,11 @@ class StartScreen(BaseWindow):
     def __init__(self):
         super().__init__(400, 204, "Старт")
         
-        self.software_start_time = _now_time_str()
+        self.software_start_time = now_time_str()
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.ops_dir = _ensure_dirs(self.base_dir)
-        self.csv_file = _csv_path(self.base_dir)
-        _ensure_csv(self.csv_file)
+        self.csv_file = csv_path(self.base_dir)
+        ensure_csv(self.csv_file)
 
         self.reg_form = None
         self.auth_form = None
@@ -35,8 +35,8 @@ class StartScreen(BaseWindow):
         root.addStretch(1)
 
         btn_row = QHBoxLayout()
-        self.btn_reg = self._btn("Регистрация", self.open_registration)
-        self.btn_auth = self._btn("Авторизация", self.open_auth)
+        self.btn_reg = self.btn("Регистрация", self.open_registration)
+        self.btn_auth = self.btn("Авторизация", self.open_auth)
 
         btn_row.addStretch(1)
         btn_row.addWidget(self.btn_reg)
@@ -46,11 +46,11 @@ class StartScreen(BaseWindow):
 
         root.addLayout(btn_row)
 
-    def _btn(self, text: str, callback) -> QPushButton:
+    def btn(self, text: str, callback) -> QPushButton:
         b = QPushButton(text, self)
         b.setFixedSize(156, 52)
         b.setCursor(Qt.PointingHandCursor)
-        b.setStyleSheet(get_btn_style())
+        b.setStyleSheet(getbtn_style())
         b.clicked.connect(callback)
         return b
 
@@ -71,12 +71,12 @@ class StartScreen(BaseWindow):
         self.auth_form.show()
         self.hide()
 
-    def closeEvent(self, event):
+    def close_event(self, event):
         if self.reg_form:
             self.reg_form.close()
         if self.auth_form:
             self.auth_form.close()
-        super().closeEvent(event)
+        super().close_event(event)
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)

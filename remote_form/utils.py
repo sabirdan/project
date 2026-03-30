@@ -4,19 +4,19 @@ from PyQt5.QtGui import QPainter, QBrush, QColor, QPolygon, QFont
 from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
-COLOR_BTN_BG = "#2C2C2C"
+COLORbtn_BG = "#2C2C2C"
 COLOR_GREEN = "#44CC29"
 COLOR_DISABLED = "#C7C7C7"
 
 CSV_DIRECTORY = r"C:\Users\user\Desktop\Профессионалы межрегион 2026\project-championat"
 
-def _csv_path(base_dir: str = None):
+def csv_path(base_dir: str = None):
     return os.path.join(CSV_DIRECTORY, "operators_db.csv")
 
-def _id_str(n: int) -> str:
+def id_str(n: int) -> str:
     return str(n).zfill(5)
 
-def _parse_hms_to_seconds(s: str) -> int:
+def parse_hms_to_seconds(s: str) -> int:
     parts = (s or "00:00:00").strip().split(":")
     if len(parts) == 3:
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
@@ -75,7 +75,7 @@ class ShapeWidget(QWidget):
         self.color = new_color
         self.update()
 
-    def paintEvent(self, event):
+    def paint_event(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
@@ -112,10 +112,10 @@ def create_line_edit(height=52, font_size=24, padding=12):
     le.setStyleSheet(f"background-color: white; border: none; padding-left: {padding}px;")
     return le
 
-def get_btn_style():
+def getbtn_style():
     return f"""
         QPushButton {{ 
-            background-color: {COLOR_BTN_BG}; 
+            background-color: {COLORbtn_BG}; 
             color: white; 
             border-radius: 8px; 
             font-family: "Times New Roman"; 

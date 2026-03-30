@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    BaseWindow, create_label, _csv_path,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, get_btn_style, create_line_edit
+    BaseWindow, create_label, csv_path,
+    COLOR_BG, COLOR_GREEN, COLORbtn_BG, getbtn_style, create_line_edit
 )
 
 class SerialWorker(QObject):
@@ -92,7 +92,7 @@ class AnalysisForm(BaseWindow):
         super().__init__(1000, 484, "Анализ оператора")
         
         self.operator_row = operator_row or {}
-        self.csv_path = _csv_path()
+        self.csv_path = csv_path()
         
         self.instr_window = None
         self.control_window = None
@@ -101,17 +101,17 @@ class AnalysisForm(BaseWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._build_ui(content_layout)
-        self._fill_data()
+        self.build_ui(content_layout)
+        self.fill_data()
 
         self.thread = QThread()
         self.worker = SerialWorker(port="COM5")
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.data_received.connect(self._update_terminal_ui)
+        self.worker.data_received.connect(self.update_terminal_ui)
         self.thread.start()
 
-    def _fill_data(self):
+    def fill_data(self):
         f_name = self.operator_row.get('first_name', '')
         l_name = self.operator_row.get('last_name', '')
         self.lbl_op_name.setText(f"{l_name} {f_name}")
@@ -122,7 +122,7 @@ class AnalysisForm(BaseWindow):
         if self.operator_row.get("pulse_normal"):
             self.edit_normal.setText(self.operator_row["pulse_normal"])
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
         header_container.setStyleSheet("background-color: white;")
@@ -155,7 +155,7 @@ class AnalysisForm(BaseWindow):
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
         self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_instr.clicked.connect(self._go_instruction)
+        self.btn_instr.clicked.connect(self.go_instruction)
         
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
@@ -164,7 +164,7 @@ class AnalysisForm(BaseWindow):
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
         self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_control.clicked.connect(self._go_control)
+        self.btn_control.clicked.connect(self.go_control)
         
         btn_hbox.addWidget(self.btn_instr)
         btn_hbox.addWidget(self.btn_analysis)
@@ -264,10 +264,10 @@ class AnalysisForm(BaseWindow):
         body_main_layout.addWidget(bottom_row, stretch=1)
         parent_layout.addWidget(body_container, stretch=1)
 
-        self._build_analysis_content()
-        self._build_connection_content()
+        self.build_analysis_content()
+        self.build_connection_content()
 
-    def _build_analysis_content(self):
+    def build_analysis_content(self):
         left_layout = QVBoxLayout(self.left_col)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(0) 
@@ -304,8 +304,8 @@ class AnalysisForm(BaseWindow):
         
         btn_save = QPushButton("Записать")
         btn_save.setFixedSize(110, 40)
-        btn_save.setStyleSheet(get_btn_style())
-        btn_save.clicked.connect(self._save_to_csv)
+        btn_save.setStyleSheet(getbtn_style())
+        btn_save.clicked.connect(self.save_to_csv)
         inputs_layout.addWidget(btn_save, alignment=Qt.AlignVCenter | Qt.AlignRight)
         
         left_layout.addWidget(inputs_frame)
@@ -329,7 +329,7 @@ class AnalysisForm(BaseWindow):
         term_content_layout.setContentsMargins(20, 0, 20, 20)
         
         term_box = QFrame()
-        term_box.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        term_box.setStyleSheet(f"background-color: {COLORbtn_BG};")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term = create_label("", 11, color="white", align=Qt.AlignTop | Qt.AlignLeft)
@@ -338,9 +338,9 @@ class AnalysisForm(BaseWindow):
         term_content_layout.addWidget(term_box)
         left_layout.addWidget(term_content_frame, stretch=1)
         
-        self._update_terminal_ui("WAIT", "WAIT", "--")
+        self.update_terminal_ui("WAIT", "WAIT", "--")
 
-    def _build_connection_content(self):
+    def build_connection_content(self):
         right_layout = QVBoxLayout(self.right_col)
         right_layout.setContentsMargins(20, 20, 20, 20)
         
@@ -369,13 +369,13 @@ class AnalysisForm(BaseWindow):
         self.btn_next = QPushButton("Далее")
         self.btn_next.setFixedSize(110, 36)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet(get_btn_style())
-        self.btn_next.clicked.connect(self._go_control)
+        self.btn_next.setStyleSheet(getbtn_style())
+        self.btn_next.clicked.connect(self.go_control)
         btn_next_layout.addWidget(self.btn_next)
         
         right_layout.addLayout(btn_next_layout)
 
-    def _update_terminal_ui(self, status_conn, status_pulse, current_pulse):
+    def update_terminal_ui(self, status_conn, status_pulse, current_pulse):
         txt_conn = "OK" if status_conn == "OK" else "FAIL"
         lines = [
             f"Проверка сигнала . . . . . . . . . . . . . . . {txt_conn}",
@@ -388,7 +388,7 @@ class AnalysisForm(BaseWindow):
             
         self.lbl_term.setText("\n".join(lines))
 
-    def _save_to_csv(self):
+    def save_to_csv(self):
         th_val = self.edit_threshold.text().strip()
         norm_val = self.edit_normal.text().strip()
         
@@ -426,22 +426,22 @@ class AnalysisForm(BaseWindow):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка CSV", f"Не удалось записать файл:\n{e}")
 
-    def _go_instruction(self):
+    def go_instruction(self):
         self.close()
         from instruction_form import InstructionForm
         if not self.instr_window:
             self.instr_window = InstructionForm(self.operator_row)
         self.instr_window.show()
         
-    def _go_control(self):
+    def go_control(self):
         self.close()
         from control_form import ControlForm
         if not self.control_window:
             self.control_window = ControlForm(self.operator_row)
         self.control_window.show()
 
-    def closeEvent(self, event):
+    def close_event(self, event):
         self.worker.stop()
         self.thread.quit()
         self.thread.wait()
-        super().closeEvent(event)
+        super().close_event(event)

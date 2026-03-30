@@ -12,11 +12,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
 from utils import (
-    BaseWindow, ShapeWidget, create_label, _csv_path, _id_str, 
-    _ensure_dirs, _parse_hms_to_seconds,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
+    BaseWindow, ShapeWidget, create_label, csv_path, id_str, 
+    _ensure_dirs, parse_hms_to_seconds,
+    COLOR_BG, COLOR_GREEN, COLORbtn_BG, 
     COLOR_DISABLED,
-    create_line_edit, get_btn_style
+    create_line_edit, getbtn_style
 )
 
 class AuthScreen(BaseWindow):
@@ -43,7 +43,7 @@ class AuthScreen(BaseWindow):
         self.btn_login = QPushButton("Далее", self)
         self.btn_login.setFixedSize(100, 36)
         self.btn_login.setCursor(Qt.PointingHandCursor)
-        self.btn_login.setStyleSheet(get_btn_style())
+        self.btn_login.setStyleSheet(getbtn_style())
         self.btn_login.clicked.connect(self.on_login)
 
         row.addWidget(self.in_id, 1)
@@ -57,7 +57,7 @@ class AuthScreen(BaseWindow):
 
         found_user = None
         try:
-            with open(_csv_path(), "r", newline="", encoding="utf-8") as f:
+            with open(csv_path(), "r", newline="", encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     if row.get("id") == user_id:
                         found_user = row
@@ -103,7 +103,7 @@ class RemoteForm(BaseWindow):
         self.player_alarm.setPlaylist(self.playlist_alarm)
 
         self.timer_monitor = QTimer(self)
-        self.timer_monitor.timeout.connect(self._update_monitor_data)
+        self.timer_monitor.timeout.connect(self.update_monitor_data)
 
         self.operator_data = {}
         self.start_time = None
@@ -114,19 +114,19 @@ class RemoteForm(BaseWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._build_ui(content_layout)
+        self.build_ui(content_layout)
 
-    def mousePressEvent(self, event):
+    def mouse_press_event(self, event):
         if self.is_movable and event.button() == Qt.LeftButton and event.y() <= 34:
             self._old_pos = event.globalPos()
 
-    def mouseMoveEvent(self, event):
+    def mouse_move_event(self, event):
         if self.is_movable and self._old_pos is not None:
             delta = QPoint(event.globalPos() - self._old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self._old_pos = event.globalPos()
 
-    def mouseReleaseEvent(self, event):
+    def mouse_release_event(self, event):
         self._old_pos = None
 
     def init_session(self, user_row):
@@ -140,7 +140,7 @@ class RemoteForm(BaseWindow):
         self.lbl_name.setText(name_text)
         self.lbl_age.setText(f"{user_row.get('age', '')} лет")
 
-        photo_name = f"ID_{_id_str(int(user_row.get('id', '0')))}.jpg"
+        photo_name = f"ID_{id_str(int(user_row.get('id', '0')))}.jpg"
         photo_path = os.path.join(_ensure_dirs(self.base_dir), photo_name)
         pix = QPixmap(photo_path)
         
@@ -164,7 +164,7 @@ class RemoteForm(BaseWindow):
         self.lbl_start.setText(f"Время запуска ПО: <b>{self.start_time.strftime('%H:%M:%S')}</b>")
         self.timer_monitor.start(1000)
 
-    def _refresh_left_info(self):
+    def refresh_left_info(self):
         self.lbl_name.setText("Фамилия Имя Отчество")
         self.lbl_age.setText("Возраст")
         self.lbl_dt.setText("Дата/время: <b>00.00.0000 / 00:00:00</b>")
@@ -182,7 +182,7 @@ class RemoteForm(BaseWindow):
         else:
             self.photo.setText("Нет фото")
 
-    def _update_monitor_data(self):
+    def update_monitor_data(self):
         pulse = 0
         status = ""
         drive_dur = "00:00:00"
@@ -190,7 +190,7 @@ class RemoteForm(BaseWindow):
 
         if target_id:
             try:
-                with open(_csv_path(), "r", newline="", encoding="utf-8") as f:
+                with open(csv_path(), "r", newline="", encoding="utf-8") as f:
                     for row in csv.DictReader(f):
                         if row.get("id") == target_id:
                             p_raw = row.get("current_pulse", "0")
@@ -212,15 +212,15 @@ class RemoteForm(BaseWindow):
         )
         self.lbl_drive.setText(f"Время в дороге: <b>{drive_dur}</b>")
 
-        seconds_done = _parse_hms_to_seconds(drive_dur)
+        seconds_done = parse_hms_to_seconds(drive_dur)
         rem = max(0, 9 * 3600 - seconds_done)
         time_left_str = f"{rem // 3600:02d}:{(rem % 3600) // 60:02d}:{rem % 60:02d}"
         self.lbl_left.setText(f"Оставшееся время: <b>{time_left_str}</b>")
 
-        self._update_indication_block(pulse)
-        self._update_terminal_block(pulse)
+        self.update_indication_block(pulse)
+        self.update_terminal_block(pulse)
 
-    def _update_indication_block(self, pulse):
+    def update_indication_block(self, pulse):
         self.lbl_pulse_val.setText(str(pulse) if pulse > 0 else "--")
         border_blue = f"border: 2px solid {COLOR_GREEN};"
 
@@ -271,7 +271,7 @@ class RemoteForm(BaseWindow):
             self.lbl_sq_yellow.set_color(COLOR_DISABLED)
             self.lbl_sq_red.set_color("red")
 
-    def _update_terminal_block(self, pulse):
+    def update_terminal_block(self, pulse):
         p_str = str(pulse) if pulse > 0 else "--"
         
         if self.current_status == "NORMAL":
@@ -293,7 +293,7 @@ class RemoteForm(BaseWindow):
             sq.set_color(COLOR_DISABLED)
             sq.setStyleSheet(f"background-color: white; border: 2px solid {COLOR_GREEN};")
 
-        self._refresh_left_info()
+        self.refresh_left_info()
         self.mid_info.setText("")
         self.lbl_pulse_val.setText("")
         self.is_movable = False
@@ -302,7 +302,7 @@ class RemoteForm(BaseWindow):
         self.auth_window.position_over_terminal(self)
         self.auth_window.show()
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
         header.setStyleSheet(f"background-color: {COLOR_GREEN};")
@@ -375,7 +375,7 @@ class RemoteForm(BaseWindow):
         bottom_layout.setSpacing(4)
 
         self.left = QFrame(); self.left.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.mid = QFrame(); self.mid.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
+        self.mid = QFrame(); self.mid.setStyleSheet(f"background-color: {COLORbtn_BG};")
         self.right = QFrame(); self.right.setStyleSheet(f"background-color: {COLOR_BG};")
 
         bottom_layout.addWidget(self.left, stretch=1)
@@ -385,11 +385,11 @@ class RemoteForm(BaseWindow):
         body_main_layout.addWidget(bottom_row, stretch=1)
         parent_layout.addWidget(body_container, stretch=1)
 
-        self._build_left_info()
-        self._build_mid_info()
-        self._build_right_info()
+        self.build_left_info()
+        self.build_mid_info()
+        self.build_right_info()
 
-    def _build_left_info(self):
+    def build_left_info(self):
         left_layout = QVBoxLayout(self.left)
         left_layout.setContentsMargins(15, 10, 15, 10)
         left_layout.setSpacing(5)
@@ -431,9 +431,9 @@ class RemoteForm(BaseWindow):
         left_layout.addWidget(self.lbl_status)
 
         left_layout.addStretch()
-        self._refresh_left_info()
+        self.refresh_left_info()
         
-    def _build_mid_info(self):
+    def build_mid_info(self):
         mid_layout = QVBoxLayout(self.mid)
         mid_layout.setContentsMargins(20, 20, 20, 20)
         
@@ -443,7 +443,7 @@ class RemoteForm(BaseWindow):
         
         mid_layout.addWidget(self.mid_info)
 
-    def _build_right_info(self):
+    def build_right_info(self):
         right_layout = QVBoxLayout(self.right)
         right_layout.setContentsMargins(15, 20, 15, 20)
         
@@ -480,7 +480,7 @@ class RemoteForm(BaseWindow):
         self.btn_next = QPushButton("Стоп программа")
         self.btn_next.setFixedSize(130, 40)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet(get_btn_style())
+        self.btn_next.setStyleSheet(getbtn_style())
         self.btn_next.clicked.connect(self.stop_program)
         btn_layout.addWidget(self.btn_next)
         

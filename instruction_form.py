@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, get_btn_style
+    COLOR_BG, COLOR_GREEN, getbtn_style
 )
 
 class InstructionForm(BaseWindow):
@@ -21,9 +21,9 @@ class InstructionForm(BaseWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._build_ui(content_layout)
+        self.build_ui(content_layout)
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
         header_container.setStyleSheet("background-color: white;")
@@ -60,12 +60,12 @@ class InstructionForm(BaseWindow):
         self.btn_analysis = QPushButton("Анализ")
         self.btn_analysis.setFixedHeight(36)
         self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_analysis.clicked.connect(self._open_analysis)
+        self.btn_analysis.clicked.connect(self.open_analysis)
         
         self.btn_control = QPushButton("Управление")
         self.btn_control.setFixedHeight(36)
         self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_control.clicked.connect(self._open_control)
+        self.btn_control.clicked.connect(self.open_control)
         
         btn_hbox.addWidget(self.btn_instr)
         btn_hbox.addWidget(self.btn_analysis)
@@ -169,10 +169,10 @@ class InstructionForm(BaseWindow):
         body_main_layout.addWidget(bottom_row, stretch=1)
         parent_layout.addWidget(body_container, stretch=1)
 
-        self._build_instruction_content()
-        self._build_connection_content()
+        self.build_instruction_content()
+        self.build_connection_content()
 
-    def _build_instruction_content(self):
+    def build_instruction_content(self):
         left_layout = QVBoxLayout(self.left_col)
         left_layout.setContentsMargins(15, 10, 15, 10)
         left_layout.setSpacing(15)
@@ -215,7 +215,7 @@ class InstructionForm(BaseWindow):
             
         left_layout.addStretch()
 
-    def _build_connection_content(self):
+    def build_connection_content(self):
         right_layout = QVBoxLayout(self.right_col)
         right_layout.setContentsMargins(20, 20, 20, 20)
         
@@ -246,20 +246,20 @@ class InstructionForm(BaseWindow):
         self.btn_next = QPushButton("Далее")
         self.btn_next.setFixedSize(110, 36)
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet(get_btn_style())
-        self.btn_next.clicked.connect(self._open_analysis)
+        self.btn_next.setStyleSheet(getbtn_style())
+        self.btn_next.clicked.connect(self.open_analysis)
         btn_next_layout.addWidget(self.btn_next)
         
         right_layout.addLayout(btn_next_layout)
 
-    def _open_control(self):
+    def open_control(self):
         from control_form import ControlForm 
         if self.control_form is None:
             self.control_form = ControlForm(self.operator_row)
         self.control_form.show()
         self.hide()
 
-    def _open_analysis(self):
+    def open_analysis(self):
         from analysis_form import AnalysisForm 
         if self.analysis_form is None:
             self.analysis_form = AnalysisForm(self.operator_row)

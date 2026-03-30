@@ -10,11 +10,11 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    _make_icon, _id_str, _next_id, _safe_csv_cell, _now_date_str, 
-    _now_time_str, _draw_to_label_with_dpr, _opencv_save_jpg,
+    make_icon, id_str, next_id, safe_csv_cell, now_date_str, 
+    now_time_str, draw_to_label_with_dpr, _opencv_save_jpg,
     get_cv_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_BTN_BG, COLOR_DISABLED, create_line_edit, get_btn_style, 
+    COLORbtn_BG, COLOR_DISABLED, create_line_edit, getbtn_style, 
 )
 
 class RegistrationForm(BaseWindow):
@@ -32,14 +32,14 @@ class RegistrationForm(BaseWindow):
         self.last_frame = None
         
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self._grab_frame)
+        self.timer.timeout.connect(self.grab_frame)
 
         content_layout = QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._build_ui(content_layout)
-        self._set_status(False, assigned=False)
+        self.build_ui(content_layout)
+        self.set_status(False, assigned=False)
 
     def reset_form(self):
         self.current_id = None
@@ -50,7 +50,7 @@ class RegistrationForm(BaseWindow):
         for inp in inputs:
             inp.clear()
         
-        self._set_status(False, assigned=False)
+        self.set_status(False, assigned=False)
         self.btn_next.setEnabled(False)
         
         default_pix = QPixmap("assets/face.png")
@@ -59,7 +59,7 @@ class RegistrationForm(BaseWindow):
                 default_pix.scaled(self.cam_view.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
             )
 
-    def _build_ui(self, parent_layout):
+    def build_ui(self, parent_layout):
         header = QFrame()
         header.setFixedHeight(120)
         header.setStyleSheet(f"background-color: {COLOR_GREEN};")
@@ -118,10 +118,10 @@ class RegistrationForm(BaseWindow):
         self.btn_identify.setFixedSize(200, 35)
         self.btn_identify.setCursor(Qt.PointingHandCursor)
         self.btn_identify.setStyleSheet(
-            get_btn_style() + 
+            getbtn_style() + 
             f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
-        self.btn_identify.clicked.connect(self._on_identify_clicked)
+        self.btn_identify.clicked.connect(self.on_identify_clicked)
         mh_layout.addWidget(self.btn_identify, alignment=Qt.AlignCenter)
 
         rh_layout = QVBoxLayout(right_header)
@@ -153,16 +153,16 @@ class RegistrationForm(BaseWindow):
         left_layout.setContentsMargins(15, 20, 15, 20)
         left_layout.setSpacing(10)
 
-        self.in_last = self._add_labeled_input(left_layout, "Фамилия")
-        self.in_first = self._add_labeled_input(left_layout, "Имя")
-        self.in_middle = self._add_labeled_input(left_layout, "Отчество")
-        self.in_age = self._add_labeled_input(left_layout, "Возраст")
+        self.in_last = self.add_labeled_input(left_layout, "Фамилия")
+        self.in_first = self.add_labeled_input(left_layout, "Имя")
+        self.in_middle = self.add_labeled_input(left_layout, "Отчество")
+        self.in_age = self.add_labeled_input(left_layout, "Возраст")
 
         left_layout.addStretch()
 
         btn_save_layout = QHBoxLayout()
         btn_save_layout.addStretch()
-        self.btn_save = self._create_btn("Записать", self._on_save, 120)
+        self.btn_save = self.createbtn("Записать", self.on_save, 120)
         btn_save_layout.addWidget(self.btn_save)
         left_layout.addLayout(btn_save_layout)
 
@@ -209,22 +209,22 @@ class RegistrationForm(BaseWindow):
 
         btn_next_layout = QHBoxLayout()
         btn_next_layout.addStretch()
-        self.btn_next = self._create_btn("Далее", self._go_start, 100)
+        self.btn_next = self.createbtn("Далее", self.go_start, 100)
         btn_next_layout.addWidget(self.btn_next)
         right_layout.addLayout(btn_next_layout)
 
-    def _create_btn(self, text, callback, width):
+    def createbtn(self, text, callback, width):
         btn = QPushButton(text)
         btn.setFixedSize(width, 34)
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
-            get_btn_style() + 
+            getbtn_style() + 
             f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
         )
         btn.clicked.connect(callback)
         return btn
 
-    def _add_labeled_input(self, parent_layout, text):
+    def add_labeled_input(self, parent_layout, text):
         row_layout = QHBoxLayout()
         row_layout.setSpacing(10)
         
@@ -239,26 +239,26 @@ class RegistrationForm(BaseWindow):
         
         return inp
 
-    def _set_status(self, ok: bool, assigned: bool):
+    def set_status(self, ok: bool, assigned: bool):
         self.status_text.setText("Оператор определен" if ok else "Оператор не определен")
         
-        pixmap = _make_icon(ok)
+        pixmap = make_icon(ok)
         if pixmap:
             self.status_icon.setPixmap(pixmap)
         
         color = COLOR_GREEN if ok else "red"
-        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLOR_BTN_BG};")
+        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLORbtn_BG};")
         
         hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
         self.info_hint.setText(hint)
         self.btn_next.setEnabled(ok)
         
         if assigned and self.current_id:
-            self.id_banner.setText(f"ID {_id_str(self.current_id)}")
+            self.id_banner.setText(f"ID {id_str(self.current_id)}")
         else:
             self.id_banner.setText("ID не присвоен")
 
-    def _validate_fields(self):
+    def validate_fields(self):
         ln = self.in_last.text().strip()
         fn = self.in_first.text().strip()
         mn = self.in_middle.text().strip()
@@ -286,27 +286,27 @@ class RegistrationForm(BaseWindow):
         }
         return data, None
 
-    def _append_csv_row(self, operator):
-        new_id = _next_id(self.csv_file)
+    def append_csv_row(self, operator):
+        new_id = next_id(self.csv_file)
         with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([
                 str(new_id), 
-                _safe_csv_cell(operator["last_name"]), 
-                _safe_csv_cell(operator["first_name"]),
-                _safe_csv_cell(operator["middle_name"]), 
+                safe_csv_cell(operator["last_name"]), 
+                safe_csv_cell(operator["first_name"]),
+                safe_csv_cell(operator["middle_name"]), 
                 operator["age"], 
-                _now_date_str(),
-                _now_time_str(), 
+                now_date_str(),
+                now_time_str(), 
                 self.software_start_time, 
                 "00:00:00"
             ])
         return new_id
 
-    def _start_camera(self):
+    def start_camera(self):
         self.cap = cv2.VideoCapture(0)
         self.timer.start(30)
 
-    def _stop_camera(self):
+    def stop_camera(self):
         self.timer.stop()
         if self.cap:
             self.cap.release()
@@ -318,31 +318,31 @@ class RegistrationForm(BaseWindow):
                 default_pix.scaled(self.cam_view.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
             )
 
-    def _grab_frame(self):
+    def grab_frame(self):
         if not self.cap:
             return
         ok, frame = self.cap.read()
         if ok and frame is not None:
             self.last_frame = cv2.flip(frame, 1)
-            _draw_to_label_with_dpr(self.last_frame, self.cam_view)
+            draw_to_label_with_dpr(self.last_frame, self.cam_view)
 
-    def _on_identify_clicked(self):
-        self._start_camera()
-        self._set_status(False, assigned=True)
-        QTimer.singleShot(1200, self._try_verify)
+    def on_identify_clicked(self):
+        self.start_camera()
+        self.set_status(False, assigned=True)
+        QTimer.singleShot(1200, self.try_verify)
 
-    def _try_verify(self):
+    def try_verify(self):
         if self.last_frame is None:
             return
 
         if self.current_id is None:
-            operator, err = self._validate_fields()
+            operator, err = self.validate_fields()
             if err:
-                self._stop_camera()
+                self.stop_camera()
                 QMessageBox.warning(self, "Ошибка", f"Сначала заполните данные: {err}")
                 return
             
-            self.current_id = self._append_csv_row(operator)
+            self.current_id = self.append_csv_row(operator)
             self._known_enc_cache = None
 
         live_face_gray, live_loc = get_cv_face(self.last_frame)
@@ -354,40 +354,40 @@ class RegistrationForm(BaseWindow):
         is_duplicate = cv_find_match(self._known_enc_cache, live_face_gray) is not None
         
         if is_invalid or is_duplicate:
-            self._set_status(False, assigned=True)
+            self.set_status(False, assigned=True)
             res = QMessageBox.question(
                 self, "Идентификация", "Пройти идентификацию заново?", 
                 QMessageBox.Yes | QMessageBox.No
             )
             if res == QMessageBox.Yes:
-                QTimer.singleShot(700, self._try_verify)
+                QTimer.singleShot(700, self.try_verify)
             else:
-                self._stop_camera()
+                self.stop_camera()
             return
 
-        save_path = os.path.join(self.ops_dir, f"ID_{_id_str(self.current_id)}.jpg")
+        save_path = os.path.join(self.ops_dir, f"ID_{id_str(self.current_id)}.jpg")
         _opencv_save_jpg(self.last_frame, save_path, face_loc=live_loc)
-        self._set_status(True, assigned=True)
+        self.set_status(True, assigned=True)
 
-    def _on_save(self):
+    def on_save(self):
         if self.current_id is None:
-            operator, err = self._validate_fields()
+            operator, err = self.validate_fields()
             if err:
                 QMessageBox.warning(self, "Проверка данных", err)
                 return
-            self.current_id = self._append_csv_row(operator)
+            self.current_id = self.append_csv_row(operator)
             self._known_enc_cache = None
 
         QMessageBox.information(self, "Успех", "Данные сохранены. Нажмите «Идентификация».")
 
-    def _go_start(self):
-        self._stop_camera()
+    def go_start(self):
+        self.stop_camera()
         if self.start_screen:
             self.start_screen.show()
         self.hide()
 
-    def closeEvent(self, event):
-        self._stop_camera()
+    def close_event(self, event):
+        self.stop_camera()
         if self.start_screen:
             self.start_screen.show()
-        super().closeEvent(event)
+        super().close_event(event)

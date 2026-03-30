@@ -8,26 +8,26 @@ from PyQt5.QtGui import QImage, QPixmap, QGuiApplication, QPainter, QBrush, QCol
 from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
-COLOR_BTN_BG = "#2C2C2C"
+COLORbtn_BG = "#2C2C2C"
 COLOR_GREEN = "#44CC29"
 COLOR_DISABLED = "#C7C7C7"
 
 CSV_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-CASCADE_PATH = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+CASCADE_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
 # РАБОТА С CSV И СИСТЕМНЫМИ ДАННЫМИ
 
-def _safe_csv_cell(s: str) -> str:
+def safe_csv_cell(s: str) -> str:
     s = (s or "").strip()
     if s and s[0] in ("=", "+", "-", "@"):
         return f"'{s}"
     return s
 
-def _csv_path(base_dir: str = None):
+def csv_path(base_dir: str = None):
     return os.path.join(CSV_DIRECTORY, "operators_db.csv")
 
-def _ensure_csv(csv_file: str):
+def ensure_csv(csv_file: str):
     if not os.path.exists(csv_file):
         with open(csv_file, "w", newline="", encoding="utf-8") as f:
             headers = [
@@ -36,7 +36,7 @@ def _ensure_csv(csv_file: str):
             ]
             csv.writer(f).writerow(headers)
 
-def _next_id(csv_file: str) -> int:
+def next_id(csv_file: str) -> int:
     if not os.path.exists(csv_file):
         return 1
     
@@ -54,10 +54,10 @@ def _next_id(csv_file: str) -> int:
             return 1
         return max(ids) + 1
 
-def _id_str(n: int) -> str:
+def id_str(n: int) -> str:
     return str(n).zfill(5)
 
-def _find_operator_by_id(csv_file: str, op_id: int):
+def find_operator_by_id(csv_file: str, op_id: int):
     if not os.path.exists(csv_file):
         return None
         
@@ -72,19 +72,19 @@ def _find_operator_by_id(csv_file: str, op_id: int):
 
 # РАБОТА СО ВРЕМЕНЕМ
 
-def _now_date_str():
+def now_date_str():
     return datetime.now().strftime("%d.%m.%Y")
 
-def _now_time_str():
+def now_time_str():
     return datetime.now().strftime("%H:%M:%S")
 
-def _parse_hms_to_seconds(s: str) -> int:
+def parse_hms_to_seconds(s: str) -> int:
     parts = (s or "00:00:00").strip().split(":")
     if len(parts) == 3:
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
     return 0
 
-def _seconds_to_hms(x: int) -> str:
+def seconds_to_hms(x: int) -> str:
     x = max(0, int(x))
     h = x // 3600
     m = (x % 3600) // 60
@@ -194,7 +194,7 @@ class ShapeWidget(QWidget):
         self.color = new_color
         self.update()
 
-    def paintEvent(self, event):
+    def paint_event(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
@@ -224,12 +224,12 @@ def create_label(text, font_size=14, bold=False, color=None, align=None):
         lbl.setAlignment(align)
     return lbl
 
-def _make_icon(ok: bool, size: int = 28) -> QPixmap:
+def make_icon(ok: bool, size: int = 28) -> QPixmap:
     name = 'accept.png' if ok else 'cancel.png'
     path = f"assets/{name}"
     return QPixmap(path).scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
-def _crop_to_aspect(img, target_w, target_h):
+def crop_to_aspect(img, target_w, target_h):
     h, w = img.shape[:2]
     aspect_img = w / h
     aspect_target = target_w / target_h
@@ -243,7 +243,7 @@ def _crop_to_aspect(img, target_w, target_h):
     offset = (h - new_h) // 2
     return img[offset:offset + new_h, :]
 
-def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
+def draw_to_label_with_dpr(frame_bgr, label: QLabel):
     screen = label.screen()
     if not screen:
         screen = QGuiApplication.primaryScreen()
@@ -255,7 +255,7 @@ def _draw_to_label_with_dpr(frame_bgr, label: QLabel):
     tw = max(1, int(label.width() * dpr))
     th = max(1, int(label.height() * dpr))
     
-    cropped = _crop_to_aspect(frame_bgr, tw, th)
+    cropped = crop_to_aspect(frame_bgr, tw, th)
     resized = cv2.resize(cropped, (tw, th), interpolation=cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     
@@ -272,10 +272,10 @@ def create_line_edit(height=52, font_size=24, padding=12):
     le.setStyleSheet(f"background-color: white; border: none; padding-left: {padding}px;")
     return le
 
-def get_btn_style():
+def getbtn_style():
     return f"""
         QPushButton {{ 
-            background-color: {COLOR_BTN_BG}; 
+            background-color: {COLORbtn_BG}; 
             color: white; 
             border-radius: 8px; 
             font-family: "Times New Roman"; 
