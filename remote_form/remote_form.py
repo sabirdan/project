@@ -1,6 +1,5 @@
 import sys
 import os
-import csv
 import datetime
 
 from PyQt5.QtCore import QPoint, Qt, QRegularExpression, QTimer, QUrl
@@ -13,9 +12,8 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
 from utils import (
     BaseWindow, ShapeWidget, create_label, csv_path, id_str, 
-    _ensure_dirs, parse_hms_to_seconds,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
-    COLOR_DISABLED,
+    _ensure_dirs, parse_hms_to_seconds, find_operator_by_id,
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_DISABLED,
     create_line_edit, getbtn_style
 )
 
@@ -55,15 +53,7 @@ class AuthScreen(BaseWindow):
         if not user_id:
             return
 
-        found_user = None
-        try:
-            with open(csv_path(), "r", newline="", encoding="utf-8") as f:
-                for row in csv.DictReader(f):
-                    if row.get("id") == user_id:
-                        found_user = row
-                        break
-        except Exception:
-            pass
+        found_user = find_operator_by_id(csv_path(), int(user_id))
 
         if found_user:
             self.remote_form.init_session(found_user)
@@ -183,26 +173,21 @@ class RemoteForm(BaseWindow):
             self.photo.setText("Нет фото")
 
     def update_monitor_data(self):
-        pulse = 0
-        status = ""
-        drive_dur = "00:00:00"
         target_id = self.operator_data.get("id")
+        if not target_id:
+            return
 
-        if target_id:
-            try:
-                with open(csv_path(), "r", newline="", encoding="utf-8") as f:
-                    for row in csv.DictReader(f):
-                        if row.get("id") == target_id:
-                            p_raw = row.get("current_pulse", "0")
-                            pulse = int(p_raw) if p_raw.isdigit() else 0
-                            status = row.get("operator_status", "")
-                            drive_dur = row.get("drive_duration", "00:00:00")
-                            break
-            except:
-                pass
+        fresh_data = find_operator_by_id(csv_path(), int(target_id))
+        
+        pulse = 0
+        status = "NORMAL"
+        drive_dur = "00:00:00"
 
-        if not status:
-            status = "NORMAL"
+        if fresh_data:
+            p_raw = fresh_data.get("current_pulse", "0")
+            pulse = int(p_raw) if p_raw.isdigit() else 0
+            status = fresh_data.get("operator_status", "NORMAL")
+            drive_dur = fresh_data.get("drive_duration", "00:00:00")
 
         self.current_status = status
         now = datetime.datetime.now()

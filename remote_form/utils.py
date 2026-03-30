@@ -27,6 +27,10 @@ def _ensure_dirs(base_dir: str):
     os.makedirs(ops_dir, exist_ok=True)
     return ops_dir
 
+def find_operator_by_id(csv_file: str, op_id: int):
+    if not os.path.exists(csv_file):
+        return None
+
 class BaseWindow(QWidget):
     def __init__(self, width, height, title):
         super().__init__()

@@ -1,5 +1,4 @@
 import os
-import csv
 import time
 import serial
 import collections
@@ -11,7 +10,7 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    BaseWindow, create_label, csv_path,
+    BaseWindow, create_label, csv_path, update_db,
     COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, getbtn_style, create_line_edit
 )
 
@@ -412,32 +411,16 @@ class AnalysisForm(BaseWindow):
         if not th_val.isdigit() or not norm_val.isdigit():
             return QMessageBox.warning(self, "Ошибка", "Введите числовые значения пульса.")
 
-        target_id = str(self.operator_row.get("id"))
+        updates = {
+            "pulse_threshold_critical": th_val,
+            "pulse_normal": norm_val,
+            "current_pulse": "0"
+        }
+
         try:
-            with open(self.csv_path, "r", newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                f_names = list(reader.fieldnames)
-                if "pulse_threshold_critical" not in f_names:
-                    f_names.append("pulse_threshold_critical")
-                if "pulse_normal" not in f_names:
-                    f_names.append("pulse_normal")
-                if "current_pulse" not in f_names:
-                    f_names.append("current_pulse")
-                
-                rows = list(reader)
-
-            for row in rows:
-                if row.get("id") == target_id:
-                    row["pulse_threshold_critical"] = th_val
-                    row["pulse_normal"] = norm_val
-                    row["current_pulse"] = "0"
-                    self.operator_row.update(row)
-                    break
-
-            with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=f_names)
-                writer.writeheader()
-                writer.writerows(rows)
+            update_db(self.csv_path, self.operator_row.get("id"), updates)
+            
+            self.operator_row.update(updates)
             
             QMessageBox.information(self, "Успех", "Данные пульса сохранены.")
         except Exception as e:

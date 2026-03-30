@@ -1,6 +1,6 @@
-import os
-import cv2
 import csv
+
+import cv2
 import time
 import datetime
 
@@ -14,9 +14,8 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     csv_path, now_date_str, now_time_str, seconds_to_hms, draw_to_label_with_dpr,
-    BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
-    COLOR_DISABLED
+    BaseWindow, ShapeWidget, create_label, update_db,
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_DISABLED
 )
 from analysis_form import SerialWorker
 
@@ -530,7 +529,7 @@ class ControlForm(BaseWindow):
         self.lbl_dt_val.setText(dt_text)
 
     def update_csv_log(self):
-        target_id = str(self.operator_row.get("id", ""))
+        target_id = self.operator_row.get("id", "")
         if not target_id:
             return
 
@@ -544,24 +543,7 @@ class ControlForm(BaseWindow):
         }
         
         try:
-            with open(self.csv_path, 'r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                fieldnames = list(reader.fieldnames) if reader.fieldnames else []
-                rows = list(reader)
-
-            for key in updates:
-                if key not in fieldnames:
-                    fieldnames.append(key)
-
-            for row in rows:
-                if row.get("id") == target_id:
-                    row.update(updates)
-                    break
-            
-            with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
+            update_db(self.csv_path, target_id, updates)
         except Exception as e:
             print(f"Ошибка обновления CSV: {e}")
 

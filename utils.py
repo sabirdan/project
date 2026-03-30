@@ -64,6 +64,37 @@ def find_operator_by_id(csv_file: str, op_id: int):
                 return row
     return None
 
+def update_db(csv_file: str, op_id, data_to_update: dict):
+    if not os.path.exists(csv_file):
+        return
+
+    target_id = str(op_id).strip()
+    rows = []
+    fieldnames = []
+
+    with open(csv_file, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames:
+            fieldnames = list(reader.fieldnames)
+        rows = list(reader)
+
+    for key in data_to_update.keys():
+        if key not in fieldnames:
+            fieldnames.append(key)
+
+    for row in rows:
+        val = str(row.get("id", "")).strip()
+        if not val:
+            val = "0"
+        if val == target_id:
+            row.update(data_to_update)
+            break
+
+    with open(csv_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
 # РАБОТА СО ВРЕМЕНЕМ
 
 def now_date_str():
