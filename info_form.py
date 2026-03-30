@@ -459,7 +459,7 @@ class InfoForm(BaseWindow):
         self.instr_form.show()
         self.hide()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         self.stop_camera()
         
         if self.face_thread.isRunning():
@@ -469,4 +469,4 @@ class InfoForm(BaseWindow):
         if self.auth_screen:
             self.auth_screen.show()
             
-        super().close_event(event)
+        super().closeEvent(event)

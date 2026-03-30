@@ -457,8 +457,8 @@ class AnalysisForm(BaseWindow):
             self.control_window = ControlForm(self.operator_row)
         self.control_window.show()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         self.worker.stop()
         self.thread.quit()
         self.thread.wait()
-        super().close_event(event)
+        super().closeEvent(event)

@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    make_icon, id_str, next_id, safe_csv_cell, now_date_str, 
+    make_icon, id_str, next_id, now_date_str, 
     now_time_str, draw_to_label_with_dpr, _opencv_save_jpg,
     get_cv_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
@@ -286,15 +286,15 @@ class RegistrationForm(BaseWindow):
         }
         return data, None
 
-    def append_csv_row(self, operator):
+def append_csv_row(self, operator):
         new_id = next_id(self.csv_file)
         with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([
                 str(new_id), 
-                safe_csv_cell(operator["last_name"]), 
-                safe_csv_cell(operator["first_name"]),
-                safe_csv_cell(operator["middle_name"]), 
-                operator["age"], 
+                operator["last_name"].strip(), 
+                operator["first_name"].strip(),
+                operator["middle_name"].strip(), 
+                str(operator["age"]).strip(),
                 now_date_str(),
                 now_time_str(), 
                 self.software_start_time, 
@@ -386,8 +386,8 @@ class RegistrationForm(BaseWindow):
             self.start_screen.show()
         self.hide()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         self.stop_camera()
         if self.start_screen:
             self.start_screen.show()
-        super().close_event(event)
+        super().closeEvent(event)

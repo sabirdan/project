@@ -64,7 +64,7 @@ class AuthScreen(BaseWindow):
         self.info_form.show()
         self.hide()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         if self.start_screen:
             self.start_screen.show()
-        super().close_event(event)
+        super().closeEvent(event)

@@ -18,12 +18,6 @@ FACE_CASCADE = cv2.CascadeClassifier(CASCADE_PATH)
 
 # РАБОТА С CSV И СИСТЕМНЫМИ ДАННЫМИ
 
-def safe_csv_cell(s: str) -> str:
-    s = (s or "").strip()
-    if s and s[0] in ("=", "+", "-", "@"):
-        return f"'{s}"
-    return s
-
 def csv_path(base_dir: str = None):
     return os.path.join(CSV_DIRECTORY, "operators_db.csv")
 
@@ -194,7 +188,7 @@ class ShapeWidget(QWidget):
         self.color = new_color
         self.update()
 
-    def paint_event(self, event):
+    def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)

@@ -579,7 +579,7 @@ class ControlForm(BaseWindow):
             self.analysis_form = AnalysisForm(self.operator_row)
         self.analysis_form.show()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         self.update_csv_log()
         
         if hasattr(self, 'worker_pulse'):
@@ -602,4 +602,4 @@ class ControlForm(BaseWindow):
         self.player_warning.stop()
         self.player_alarm.stop()
         
-        super().close_event(event)
+        super().closeEvent(event)

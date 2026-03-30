@@ -75,7 +75,7 @@ class ShapeWidget(QWidget):
         self.color = new_color
         self.update()
 
-    def paint_event(self, event):
+    def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)

@@ -71,12 +71,12 @@ class StartScreen(BaseWindow):
         self.auth_form.show()
         self.hide()
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         if self.reg_form:
             self.reg_form.close()
         if self.auth_form:
             self.auth_form.close()
-        super().close_event(event)
+        super().closeEvent(event)
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
