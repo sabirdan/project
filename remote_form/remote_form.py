@@ -124,13 +124,13 @@ class RemoteForm(BaseWindow):
         self.is_movable = True
         
         name_text = (
-            f"{user_row.get('last_name', '')} {user_row.get('first_name', '')}\n"
-            f"{user_row.get('middle_name', '')}"
+            f"{user_row.get("last_name", "")} {user_row.get("first_name", "")}\n"
+            f"{user_row.get("middle_name", "")}"
         )
         self.lbl_name.setText(name_text)
-        self.lbl_age.setText(f"{user_row.get('age', '')} лет")
+        self.lbl_age.setText(f"{user_row.get("age", "")} лет")
 
-        photo_name = f"ID_{id_str(int(user_row.get('id', '0')))}.jpg"
+        photo_name = f"ID_{id_str(int(user_row.get("id", "0")))}.jpg"
         photo_path = os.path.join(ensure_dirs(self.base_dir), photo_name)
         pix = QPixmap(photo_path)
         
@@ -151,7 +151,7 @@ class RemoteForm(BaseWindow):
         except:
             self.start_time = datetime.datetime.now()
 
-        self.lbl_start.setText(f"Время запуска ПО: <b>{self.start_time.strftime('%H:%M:%S')}</b>")
+        self.lbl_start.setText(f"Время запуска ПО: <b>{self.start_time.strftime("%H:%M:%S")}</b>")
         self.timer_monitor.start(1000)
 
     def refresh_left_info(self):
@@ -193,7 +193,7 @@ class RemoteForm(BaseWindow):
         now = datetime.datetime.now()
         
         self.lbl_dt.setText(
-            f"Дата/время: <b>{now.strftime('%d.%m.%Y')} / {now.strftime('%H:%M:%S')}</b>"
+            f"Дата/время: <b>{now.strftime("%d.%m.%Y")} / {now.strftime("%H:%M:%S")}</b>"
         )
         self.lbl_drive.setText(f"Время в дороге: <b>{drive_dur}</b>")
 
@@ -213,7 +213,7 @@ class RemoteForm(BaseWindow):
             self.player_warning.stop()
             self.player_alarm.stop()
             
-            self.lbl_status.setText(f"Состояние: <span style='color: green'>НОРМА</span>")
+            self.lbl_status.setText(f"Состояние: <span style = color:green>НОРМА</span>")
             self.lbl_pulse_val.setStyleSheet(f"color: green;")
             
             self.lbl_sq_green.setStyleSheet(f"background-color: turquoise; {border_blue}")
@@ -229,7 +229,7 @@ class RemoteForm(BaseWindow):
                 self.player_warning.play()
             self.player_alarm.stop()
             
-            self.lbl_status.setText(f"Состояние: <span style='color: gold'>ВНИМАНИЕ</span>")
+            self.lbl_status.setText(f"Состояние: <span style = color:gold>ВНИМАНИЕ</span>")
             self.lbl_pulse_val.setStyleSheet(f"color: gold;")
             
             self.lbl_sq_green.setStyleSheet(COLOR_DISABLED)
@@ -245,7 +245,7 @@ class RemoteForm(BaseWindow):
             if self.player_alarm.state() != QMediaPlayer.PlayingState:
                 self.player_alarm.play()
                 
-            self.lbl_status.setText(f"Состояние: <span style='color: red'>КРИТИЧНО!</span>")
+            self.lbl_status.setText(f"Состояние: <span style = color:red>КРИТИЧНО!</span>")
             self.lbl_pulse_val.setStyleSheet(f"color: red;")
             
             self.lbl_sq_green.setStyleSheet(COLOR_DISABLED)

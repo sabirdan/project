@@ -117,7 +117,7 @@ class ControlForm(BaseWindow):
         menu_vbox.addStretch()
         
         btn_hbox = QHBoxLayout()
-        b_style = "color: white; border-radius: 18px; font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        b_style = "color: white; border-radius: 18px; font-family: Times New Roman; font-size: 14px; font-weight: bold;"
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
@@ -176,8 +176,8 @@ class ControlForm(BaseWindow):
         
         lbl_op_status = create_label("Оператор\nопределен:", 14)
         
-        f_name = self.operator_row.get('first_name', '')
-        l_name = self.operator_row.get('last_name', '')
+        f_name = self.operator_row.get("first_name", "")
+        l_name = self.operator_row.get("last_name", "")
         self.lbl_op_name = create_label(f"{l_name} {f_name}", 16)
         
         id_data_hbox.addWidget(lbl_op_status)
@@ -360,8 +360,8 @@ class ControlForm(BaseWindow):
 
         self.cap = cv2.VideoCapture(0)
         
-        face_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-        eye_path = cv2.data.haarcascades + 'haarcascade_eye.xml'
+        face_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        eye_path = cv2.data.haarcascades + "haarcascade_eye.xml"
         self.eye_cascade = cv2.CascadeClassifier(eye_path)
         
         self.timer_cam = QTimer(self)
@@ -551,10 +551,10 @@ class ControlForm(BaseWindow):
     def closeEvent(self, event):
         self.update_csv_log()
         
-        if hasattr(self, 'worker_pulse'):
+        if hasattr(self, "worker_pulse"):
             self.worker_pulse.stop()
             
-        if hasattr(self, 'thread_pulse'):
+        if hasattr(self, "thread_pulse"):
             self.thread_pulse.quit()
             self.thread_pulse.wait()
             
@@ -562,7 +562,7 @@ class ControlForm(BaseWindow):
         self.timer_cam.stop()
         self.timer_video.stop()
         
-        if hasattr(self, 'cap') and self.cap.isOpened():
+        if hasattr(self, "cap") and self.cap.isOpened():
             self.cap.release()
             
         if self.video_cap:

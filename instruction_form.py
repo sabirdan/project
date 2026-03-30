@@ -52,7 +52,7 @@ class InstructionForm(BaseWindow):
         menu_vbox.addStretch()
         
         btn_hbox = QHBoxLayout()
-        b_style = "color: white; border-radius: 18px; font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        b_style = "color: white; border-radius: 18px; font-family: Times New Roman; font-size: 14px; font-weight: bold;"
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
@@ -111,8 +111,8 @@ class InstructionForm(BaseWindow):
         
         lbl_op_status = create_label("Оператор\nопределен:", 14)
         
-        f_name = self.operator_row.get('first_name', '')
-        l_name = self.operator_row.get('last_name', '')
+        f_name = self.operator_row.get("first_name", "")
+        l_name = self.operator_row.get("last_name", "")
         self.lbl_op_name = create_label(f"{l_name} {f_name}", 16)
         
         id_data_hbox.addWidget(lbl_op_status)

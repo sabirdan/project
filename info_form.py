@@ -89,7 +89,7 @@ class InfoForm(BaseWindow):
             QTimer.singleShot(1200, self.try_verify)
 
     def update_clock(self):
-        now_str = datetime.now().strftime('%d.%m.%Y / %H:%M:%S')
+        now_str = datetime.now().strftime("%d.%m.%Y / %H:%M:%S")
         self.lbl_dt.setText(f"Дата/время: <b>{now_str}</b>")
 
     def set_operator_row(self, operator_row: dict):
@@ -114,7 +114,7 @@ class InfoForm(BaseWindow):
         self.is_present = False
         self.is_processing = False
         
-        if hasattr(self, 'presence_timer'):
+        if hasattr(self, "presence_timer"):
             self.presence_timer.stop()
 
     def build_ui(self, parent_layout):
@@ -312,20 +312,20 @@ class InfoForm(BaseWindow):
         self.lbl_name.setText(full_name)
         
         age_text = "—"
-        if row.get('age'):
-            age_text = f"{row.get('age', '')} лет"
+        if row.get("age"):
+            age_text = f"{row.get("age", "")} лет"
         self.lbl_age.setText(age_text)
         
-        start_time = (row.get('software_start_time') or '').strip()
+        start_time = (row.get("software_start_time") or "").strip()
         if not start_time:
             start_time = "—"
         self.lbl_start.setText(f"Время запуска ПО: <b>{start_time}</b>")
         
         drive = (row.get("drive_duration") or "00:00:00").strip()
-        self.lbl_drive.setText(f"Время в дороге: <span style='padding-left: 10px;'><b>{drive}</b></span>")
+        self.lbl_drive.setText(f"Время в дороге: <span style= padding-left: 10px;><b>{drive}</b></span>")
         
         remaining = 9 * 3600 - parse_hms_to_seconds(drive)
-        self.lbl_left.setText(f"Оставшееся время: <span style='padding-left: 10px;'><b>{seconds_to_hms(remaining)}</b></span>")
+        self.lbl_left.setText(f"Оставшееся время: <span style= padding-left: 10px;><b>{seconds_to_hms(remaining)}</b></span>")
 
         id_img = f"ID_{id_str(self.op_id)}.jpg"
         img_path = os.path.join(self.ops_dir, id_img)

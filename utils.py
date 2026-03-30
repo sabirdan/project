@@ -254,7 +254,7 @@ def create_label(text, font_size=14, bold=False, color=None, align=None):
     return lbl
 
 def make_icon(ok: bool, size: int = 28) -> QPixmap:
-    name = 'accept.png' if ok else 'cancel.png'
+    name = "accept.png" if ok else "cancel.png"
     path = f"assets/{name}"
     return QPixmap(path).scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 

@@ -36,7 +36,7 @@ class SerialWorker(QObject):
 
             while self.running:
                 if self.ser.in_waiting:
-                    line = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                    line = self.ser.readline().decode("utf-8", errors="ignore").strip()
                     
                     if line.isdigit():
                         val = int(line)
@@ -111,14 +111,14 @@ class AnalysisForm(BaseWindow):
         self.thread.start()
 
     def fill_data(self):
-        f_name = self.operator_row.get('first_name', '')
-        l_name = self.operator_row.get('last_name', '')
+        f_name = self.operator_row.get("first_name", "")
+        l_name = self.operator_row.get("last_name", "")
         self.lbl_op_name.setText(f"{l_name} {f_name}")
         
-        if hasattr(self, 'edit_threshold') and self.operator_row.get("pulse_threshold_critical"):
+        if hasattr(self, "edit_threshold") and self.operator_row.get("pulse_threshold_critical"):
             self.edit_threshold.setText(self.operator_row["pulse_threshold_critical"])
         
-        if hasattr(self, 'edit_normal') and self.operator_row.get("pulse_normal"):
+        if hasattr(self, "edit_normal") and self.operator_row.get("pulse_normal"):
             self.edit_normal.setText(self.operator_row["pulse_normal"])
 
     def build_ui(self, parent_layout):
@@ -149,7 +149,7 @@ class AnalysisForm(BaseWindow):
         menu_vbox.addStretch()
         
         btn_hbox = QHBoxLayout()
-        b_style = "color: white; border-radius: 18px; font-family: 'Times New Roman'; font-size: 14px; font-weight: bold;"
+        b_style = "color: white; border-radius: 18px; font-family: Times New Roman; font-size: 14px; font-weight: bold;"
         
         self.btn_instr = QPushButton("Инструкция")
         self.btn_instr.setFixedHeight(36)
