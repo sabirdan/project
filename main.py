@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 )
 
 from utils import (
-    now_time_str, _ensure_dirs, csv_path, ensure_csv,
+    now_time_str, ensure_dirs, csv_path, ensure_csv,
     BaseWindow, create_label, getbtn_style
 )
 
@@ -55,7 +55,7 @@ class StartScreen(BaseWindow):
 class WindowManager:
     def __init__(self):
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.ops_dir = _ensure_dirs(self.base_dir)
+        self.ops_dir = ensure_dirs(self.base_dir)
         self.csv_file = csv_path(self.base_dir)
         ensure_csv(self.csv_file)
         self.software_start_time = now_time_str()

@@ -118,16 +118,20 @@ def seconds_to_hms(x: int) -> str:
 
 # КОМПЬЮТЕРНОЕ ЗРЕНИЕ (OPENCV) И ПОИСК ЛИЦ
 
-def get_cv_face(frame_bgr):
-    if frame_bgr is None:
+def process_face(frame, draw=False, color=(0, 255, 0)):
+    if frame is None:
         return None, None
         
-    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-    faces = FACE_CASCADE.detectMultiScale(gray, 1.1, 5, minSize=(100, 100))
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = FACE_CASCADE.detectMultiScale(gray, 1.3, 5, minSize=(100, 100))
     
-    if len(faces) == 1:
-        x, y, w, h = faces[0]
-        return gray[y:y+h, x:x+w], (y, x+w, y+h, x)
+    if len(faces) > 0:
+        x, y, w, h = max(faces, key=lambda f: f[2]*f[3])
+        
+        if draw:
+            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+            
+        return gray[y:y+h, x:x+w], (x, y, w, h)
         
     return None, None
 
@@ -156,8 +160,8 @@ def cv_load_known_faces(ops_dir, exclude_id=None):
             
             if exclude_id is None or pid != exclude_id:
                 path = os.path.join(ops_dir, name)
-                img = _opencv_imread_unicode(path)
-                face_gray, _ = get_cv_face(img)
+                img = opencv_imread_unicode(path)
+                face_gray, _ = process_face(img, draw=False) 
                 
                 if face_gray is not None:
                     known.append((pid, face_gray))
@@ -312,24 +316,24 @@ def getbtn_style():
 
 # ФАЙЛОВЫЕ ОПЕРАЦИИ И СОХРАНЕНИЕ
 
-def _ensure_dirs(base_dir: str):
+def ensure_dirs(base_dir: str):
     ops_dir = os.path.join(CSV_DIRECTORY, "operators")
     os.makedirs(ops_dir, exist_ok=True)
     return ops_dir
 
-def _opencv_imread_unicode(filepath):
+def opencv_imread_unicode(filepath):
     data = np.fromfile(filepath, dtype=np.uint8)
     return cv2.imdecode(data, cv2.IMREAD_COLOR)
 
-def _opencv_save_jpg(frame_bgr, filepath: str, face_loc=None):
+def opencv_save_jpg(frame_bgr, filepath: str, face_loc=None):
     if frame_bgr is None or not filepath:
         return False
         
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     
     if face_loc:
-        y1, x2, y2, x1 = face_loc
-        save_frame = frame_bgr[y1:y2, x1:x2]
+        x, y, w, h = face_loc
+        save_frame = frame_bgr[y:y+h, x:x+w]
     else:
         save_frame = frame_bgr
         

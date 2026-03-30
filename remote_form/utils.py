@@ -1,3 +1,4 @@
+import csv
 import os
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPolygon, QFont
@@ -22,7 +23,7 @@ def parse_hms_to_seconds(s: str) -> int:
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
     return 0
 
-def _ensure_dirs(base_dir: str):
+def ensure_dirs(base_dir: str):
     ops_dir = os.path.join(CSV_DIRECTORY, "operators")
     os.makedirs(ops_dir, exist_ok=True)
     return ops_dir
@@ -30,6 +31,15 @@ def _ensure_dirs(base_dir: str):
 def find_operator_by_id(csv_file: str, op_id: int):
     if not os.path.exists(csv_file):
         return None
+        
+    with open(csv_file, "r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            val = str(row.get("id", "")).strip()
+            if not val:
+                val = "0"
+            if int(val) == op_id:
+                return row
+    return None
 
 class BaseWindow(QWidget):
     def __init__(self, width, height, title):

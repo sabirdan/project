@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     make_icon, parse_hms_to_seconds, seconds_to_hms, 
-    id_str, draw_to_label_with_dpr, get_cv_face, 
-    cv_compare_faces, _opencv_imread_unicode,
+    id_str, draw_to_label_with_dpr, process_face,
+    cv_compare_faces, opencv_imread_unicode,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
     COLOR_BTN_BG, COLOR_DISABLED, getbtn_style
 )
@@ -21,7 +21,7 @@ class FaceWorker(QObject):
 
     @pyqtSlot(object, object)
     def process_frame(self, frame, ref_face_gray):
-        live_face_gray, loc = get_cv_face(frame)
+        live_face_gray, loc = process_face(frame, draw=False)
         
         if live_face_gray is None:
             self.finished.emit(False, None)
@@ -376,9 +376,9 @@ class InfoForm(BaseWindow):
             self.last_frame = cv2.flip(frame, 1)
             
             if self.last_face_loc:
-                y, right, b, x = self.last_face_loc
+                x, y, w, h = self.last_face_loc
                 color = (0, 255, 0) if self.last_face_ok else (0, 0, 255)
-                cv2.rectangle(self.last_frame, (x, y), (right, b), color, 2)
+                cv2.rectangle(self.last_frame, (x, y), (x+w, y+h), color, 2)
                 
             draw_to_label_with_dpr(self.last_frame, self.cam_view)
 
@@ -388,10 +388,10 @@ class InfoForm(BaseWindow):
             
         id_img = f"ID_{id_str(self.op_id)}.jpg"
         ref_path = os.path.join(self.ops_dir, id_img)
-        ref_img = _opencv_imread_unicode(ref_path)
+        ref_img = opencv_imread_unicode(ref_path)
         
         if ref_img is not None:
-            self._ref_enc_cache, _ = get_cv_face(ref_img)
+            self._ref_enc_cache, _ = process_face(ref_img, draw=False)
             
         return self._ref_enc_cache
 
@@ -419,7 +419,7 @@ class InfoForm(BaseWindow):
             QMessageBox.critical(self, "Ошибка", "Эталонное лицо не найдено в файле.")
             return
 
-        live_face_gray, loc = get_cv_face(self.last_frame)
+        live_face_gray, loc = process_face(self.last_frame, draw=False)
         self.last_face_loc = loc
         self.last_face_ok = live_face_gray is not None
 
@@ -440,8 +440,8 @@ class InfoForm(BaseWindow):
         self.presence_timer.start()
         
         frame_draw = self.last_frame.copy()
-        y, right, b, x = loc
-        cv2.rectangle(frame_draw, (x, y), (right, b), (0, 255, 0), 2)
+        x, y, w, h = loc
+        cv2.rectangle(frame_draw, (x, y), (x+w, y+h), (0, 255, 0), 2)
         draw_to_label_with_dpr(frame_draw, self.cam_view)
         QApplication.processEvents()
         

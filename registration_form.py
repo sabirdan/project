@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     make_icon, id_str, next_id, now_date_str, 
-    now_time_str, draw_to_label_with_dpr, _opencv_save_jpg,
-    get_cv_face, cv_find_match, cv_load_known_faces,
+    now_time_str, draw_to_label_with_dpr, opencv_save_jpg,
+    process_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
     COLOR_BTN_BG, COLOR_DISABLED, create_line_edit, getbtn_style, 
 )
@@ -346,7 +346,7 @@ class RegistrationForm(BaseWindow):
             self.current_id = self.append_csv_row(operator)
             self._known_enc_cache = None
 
-        live_face_gray, live_loc = get_cv_face(self.last_frame)
+        live_face_gray, live_loc = process_face(self.last_frame, draw=False)
         
         if not self._known_enc_cache:
             self._known_enc_cache = cv_load_known_faces(self.ops_dir, exclude_id=self.current_id)
@@ -367,7 +367,7 @@ class RegistrationForm(BaseWindow):
             return
 
         save_path = os.path.join(self.ops_dir, f"ID_{id_str(self.current_id)}.jpg")
-        _opencv_save_jpg(self.last_frame, save_path, face_loc=live_loc)
+        opencv_save_jpg(self.last_frame, save_path, face_loc=live_loc)
         self.set_status(True, assigned=True)
 
     def on_save(self):

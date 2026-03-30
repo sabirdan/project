@@ -12,7 +12,7 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 
 from utils import (
     BaseWindow, ShapeWidget, create_label, csv_path, id_str, 
-    _ensure_dirs, parse_hms_to_seconds, find_operator_by_id,
+    ensure_dirs, parse_hms_to_seconds, find_operator_by_id,
     COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_DISABLED,
     create_line_edit, getbtn_style
 )
@@ -131,7 +131,7 @@ class RemoteForm(BaseWindow):
         self.lbl_age.setText(f"{user_row.get('age', '')} лет")
 
         photo_name = f"ID_{id_str(int(user_row.get('id', '0')))}.jpg"
-        photo_path = os.path.join(_ensure_dirs(self.base_dir), photo_name)
+        photo_path = os.path.join(ensure_dirs(self.base_dir), photo_name)
         pix = QPixmap(photo_path)
         
         if not pix.isNull():

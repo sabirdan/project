@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     csv_path, now_date_str, now_time_str, seconds_to_hms, draw_to_label_with_dpr,
-    BaseWindow, ShapeWidget, create_label, update_db,
+    BaseWindow, ShapeWidget, create_label, update_db, process_face,
     COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, COLOR_DISABLED
 )
 from analysis_form import SerialWorker
@@ -362,7 +362,6 @@ class ControlForm(BaseWindow):
         
         face_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         eye_path = cv2.data.haarcascades + 'haarcascade_eye.xml'
-        self.face_cascade = cv2.CascadeClassifier(face_path)
         self.eye_cascade = cv2.CascadeClassifier(eye_path)
         
         self.timer_cam = QTimer(self)
@@ -405,20 +404,14 @@ class ControlForm(BaseWindow):
             return
             
         frame = cv2.flip(frame, 1)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
         
+        roi_gray, face_loc = process_face(frame, draw=True, color=(0, 255, 0))
+        
+        detected_face = face_loc is not None
         detected_eyes = False
-        detected_face = False
 
-        if len(faces) > 0:
-            detected_face = True
-            faces_sorted = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
-            x, y, w, h = faces_sorted[0]
-            
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            
-            roi_gray = gray[y:y+h, x:x+w]
+        if detected_face:
+            x, y, w, h = face_loc
             eyes = self.eye_cascade.detectMultiScale(roi_gray, 1.1, 10, minSize=(20, 20))
             
             if len(eyes) > 0:
