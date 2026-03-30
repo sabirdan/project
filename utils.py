@@ -161,9 +161,9 @@ def cv_load_known_faces(ops_dir, exclude_id=None):
             if exclude_id is None or pid != exclude_id:
                 path = os.path.join(ops_dir, name)
                 img = opencv_imread_unicode(path)
-                face_gray, _ = process_face(img, draw=False) 
                 
-                if face_gray is not None:
+                if img is not None:
+                    face_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     known.append((pid, face_gray))
     return known
 

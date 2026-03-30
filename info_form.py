@@ -391,7 +391,7 @@ class InfoForm(BaseWindow):
         ref_img = opencv_imread_unicode(ref_path)
         
         if ref_img is not None:
-            self._ref_enc_cache, _ = process_face(ref_img, draw=False)
+            self._ref_enc_cache = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY)
             
         return self._ref_enc_cache
 
