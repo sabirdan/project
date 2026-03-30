@@ -14,7 +14,7 @@ from utils import (
     now_time_str, draw_to_label_with_dpr, _opencv_save_jpg,
     get_cv_face, cv_find_match, cv_load_known_faces,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLORbtn_BG, COLOR_DISABLED, create_line_edit, getbtn_style, 
+    COLOR_BTN_BG, COLOR_DISABLED, create_line_edit, getbtn_style, 
 )
 
 class RegistrationForm(BaseWindow):
@@ -247,7 +247,7 @@ class RegistrationForm(BaseWindow):
             self.status_icon.setPixmap(pixmap)
         
         color = COLOR_GREEN if ok else "red"
-        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLORbtn_BG};")
+        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLOR_BTN_BG};")
         
         hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
         self.info_hint.setText(hint)

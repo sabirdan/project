@@ -14,7 +14,7 @@ from utils import (
     id_str, draw_to_label_with_dpr, get_cv_face, 
     cv_compare_faces, _opencv_imread_unicode,
     BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLORbtn_BG, COLOR_DISABLED, getbtn_style
+    COLOR_BTN_BG, COLOR_DISABLED, getbtn_style
 )
 
 class FaceWorker(QObject):
@@ -346,7 +346,7 @@ class InfoForm(BaseWindow):
             self.status_icon.setPixmap(pixmap)
         
         banner_bg = COLOR_GREEN if ok else "red"
-        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLORbtn_BG};")
+        self.id_banner.setStyleSheet(f"background-color: {banner_bg}; color: {COLOR_BTN_BG};")
         
         banner_text = f"ID {id_str(self.op_id)}" if ok else "ID не определен"
         self.id_banner.setText(banner_text)

@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QBrush, QColor, QPolygon, QFont
 from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 COLOR_BG = "#D9D9D9"
-COLORbtn_BG = "#2C2C2C"
+COLOR_BTN_BG = "#2C2C2C"
 COLOR_GREEN = "#44CC29"
 COLOR_DISABLED = "#C7C7C7"
 
@@ -115,7 +115,7 @@ def create_line_edit(height=52, font_size=24, padding=12):
 def getbtn_style():
     return f"""
         QPushButton {{ 
-            background-color: {COLORbtn_BG}; 
+            background-color: {COLOR_BTN_BG}; 
             color: white; 
             border-radius: 8px; 
             font-family: "Times New Roman"; 

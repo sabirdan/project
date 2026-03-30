@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from utils import (
     BaseWindow, create_label, csv_path,
-    COLOR_BG, COLOR_GREEN, COLORbtn_BG, getbtn_style, create_line_edit
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, getbtn_style, create_line_edit
 )
 
 class SerialWorker(QObject):
@@ -116,10 +116,10 @@ class AnalysisForm(BaseWindow):
         l_name = self.operator_row.get('last_name', '')
         self.lbl_op_name.setText(f"{l_name} {f_name}")
         
-        if self.operator_row.get("pulse_threshold_critical"):
+        if hasattr(self, 'edit_threshold') and self.operator_row.get("pulse_threshold_critical"):
             self.edit_threshold.setText(self.operator_row["pulse_threshold_critical"])
         
-        if self.operator_row.get("pulse_normal"):
+        if hasattr(self, 'edit_normal') and self.operator_row.get("pulse_normal"):
             self.edit_normal.setText(self.operator_row["pulse_normal"])
 
     def build_ui(self, parent_layout):
@@ -272,6 +272,9 @@ class AnalysisForm(BaseWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(0) 
         
+        th_val = self.operator_row.get("pulse_threshold_critical")
+        norm_val = self.operator_row.get("pulse_normal")
+
         inputs_frame = QWidget()
         inputs_layout = QHBoxLayout(inputs_frame)
         inputs_layout.setContentsMargins(20, 15, 20, 15)
@@ -282,32 +285,46 @@ class AnalysisForm(BaseWindow):
         row1 = QHBoxLayout()
         lbl_p1 = create_label("Укажите порог вашего пульса", 12)
         lbl_p1.setFixedWidth(280)
-        self.edit_threshold = create_line_edit(height=35, font_size=14, padding=5)
-        self.edit_threshold.setFixedWidth(200)
         row1.addWidget(lbl_p1)
-        row1.addWidget(self.edit_threshold)
+        
+        if th_val:
+            val_th = create_label(th_val, 14)
+            val_th.setFixedWidth(200)
+            row1.addWidget(val_th)
+        else:
+            self.edit_threshold = create_line_edit(height=35, font_size=14, padding=5)
+            self.edit_threshold.setFixedWidth(200)
+            row1.addWidget(self.edit_threshold)
         row1.addStretch()
         
         row2 = QHBoxLayout()
         lbl_p2 = create_label("Укажите норму вашего пульса", 12)
         lbl_p2.setFixedWidth(280)
-        self.edit_normal = create_line_edit(height=35, font_size=14, padding=5)
-        self.edit_normal.setFixedWidth(200)
         row2.addWidget(lbl_p2)
-        row2.addWidget(self.edit_normal)
+        
+        if norm_val:
+            val_norm = create_label(norm_val, 14)
+            val_norm.setFixedWidth(200)
+            row2.addWidget(val_norm)
+        else:
+            self.edit_normal = create_line_edit(height=35, font_size=14, padding=5)
+            self.edit_normal.setFixedWidth(200)
+            row2.addWidget(self.edit_normal)
         row2.addStretch()
         
         fields_vbox.addLayout(row1)
         fields_vbox.addLayout(row2)
-        
         inputs_layout.addLayout(fields_vbox)
         
-        btn_save = QPushButton("Записать")
-        btn_save.setFixedSize(110, 40)
-        btn_save.setStyleSheet(getbtn_style())
-        btn_save.clicked.connect(self.save_to_csv)
-        inputs_layout.addWidget(btn_save, alignment=Qt.AlignVCenter | Qt.AlignRight)
-        
+        if not (th_val and norm_val):
+            btn_save = QPushButton("Записать")
+            btn_save.setFixedSize(110, 40)
+            btn_save.setStyleSheet(getbtn_style())
+            btn_save.clicked.connect(self.save_to_csv)
+            inputs_layout.addWidget(btn_save, alignment=Qt.AlignVCenter | Qt.AlignRight)
+        else:
+            inputs_layout.addStretch()
+            
         left_layout.addWidget(inputs_frame)
 
         line_sep = QFrame()
@@ -329,7 +346,7 @@ class AnalysisForm(BaseWindow):
         term_content_layout.setContentsMargins(20, 0, 20, 20)
         
         term_box = QFrame()
-        term_box.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        term_box.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term = create_label("", 11, color="white", align=Qt.AlignTop | Qt.AlignLeft)

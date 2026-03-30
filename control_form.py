@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 from utils import (
     csv_path, now_date_str, now_time_str, seconds_to_hms, draw_to_label_with_dpr,
     BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, COLORbtn_BG, 
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
     COLOR_DISABLED
 )
 from analysis_form import SerialWorker
@@ -195,7 +195,7 @@ class ControlForm(BaseWindow):
         self.left_col = QFrame()
         self.left_col.setStyleSheet(f"background-color: {COLOR_BG};")
         self.video_col = QFrame()
-        self.video_col.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        self.video_col.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         
         body_layout.addWidget(self.left_col, stretch=1)
         body_layout.addWidget(self.video_col, stretch=2)
@@ -254,7 +254,7 @@ class ControlForm(BaseWindow):
         term_layout.setContentsMargins(3, 0, 3, 0)
         
         term_box = QFrame()
-        term_box.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        term_box.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         term_box_layout = QVBoxLayout(term_box)
         
         self.lbl_term_text = create_label("Состояние нормальное\nПульс --", 10, color="white", align=Qt.AlignTop | Qt.AlignLeft)
@@ -286,7 +286,7 @@ class ControlForm(BaseWindow):
         video_layout.setContentsMargins(0, 0, 0, 0)
         
         self.video_label = QLabel()
-        self.video_label.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        self.video_label.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         video_layout.addWidget(self.video_label)
 
         self.video_cap = cv2.VideoCapture("videoBG.mp4")
@@ -320,7 +320,7 @@ class ControlForm(BaseWindow):
 
         strip_layout.addStretch()
 
-        lbl_pulse = create_label("Пульс:", 28, bold=True, color=COLORbtn_BG)
+        lbl_pulse = create_label("Пульс:", 28, bold=True, color=COLOR_BTN_BG)
         lbl_pulse.setStyleSheet("background: transparent;")
         strip_layout.addWidget(lbl_pulse)
 
@@ -338,7 +338,7 @@ class ControlForm(BaseWindow):
         face_layout.setContentsMargins(2, 2, 2, 2)
         
         self.lbl_cam_feed = QLabel()
-        self.lbl_cam_feed.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        self.lbl_cam_feed.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         face_layout.addWidget(self.lbl_cam_feed)
 
         top_row_layout.addWidget(top_strip, stretch=1, alignment=Qt.AlignTop)

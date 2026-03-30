@@ -14,7 +14,7 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from utils import (
     BaseWindow, ShapeWidget, create_label, csv_path, id_str, 
     _ensure_dirs, parse_hms_to_seconds,
-    COLOR_BG, COLOR_GREEN, COLORbtn_BG, 
+    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, 
     COLOR_DISABLED,
     create_line_edit, getbtn_style
 )
@@ -375,7 +375,7 @@ class RemoteForm(BaseWindow):
         bottom_layout.setSpacing(4)
 
         self.left = QFrame(); self.left.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.mid = QFrame(); self.mid.setStyleSheet(f"background-color: {COLORbtn_BG};")
+        self.mid = QFrame(); self.mid.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
         self.right = QFrame(); self.right.setStyleSheet(f"background-color: {COLOR_BG};")
 
         bottom_layout.addWidget(self.left, stretch=1)
