@@ -4,7 +4,7 @@ import csv
 import time
 import datetime
 
-from PyQt5.QtCore import Qt, QUrl, QTimer, QThread, pyqtSlot
+from PyQt5.QtCore import Qt, QUrl, QTimer, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtWidgets import (
@@ -21,6 +21,9 @@ from utils import (
 from analysis_form import SerialWorker
 
 class ControlForm(BaseWindow):
+    sig_go_instruction = pyqtSignal(dict)
+    sig_go_analysis = pyqtSignal(dict)
+
     def __init__(self, operator_row: dict = None):
         super().__init__(1000, 484, "НейроБодр - Мониторинг")
         
@@ -36,9 +39,6 @@ class ControlForm(BaseWindow):
         
         self.load_settings_from_csv()
         
-        self.analysis_form = None
-        self.instr_form = None
-
         self.current_pulse_val = 0
         self.current_state = "NORMAL"
         self.start_app_time = datetime.datetime.now()
@@ -566,18 +566,12 @@ class ControlForm(BaseWindow):
             print(f"Ошибка обновления CSV: {e}")
 
     def go_instruction(self):
-        self.close()
-        from instruction_form import InstructionForm
-        if not self.instr_form:
-            self.instr_form = InstructionForm(self.operator_row)
-        self.instr_form.show()
+        self.sig_go_instruction.emit(self.operator_row)
+        self.hide()
 
     def go_analysis(self):
-        self.close()
-        from analysis_form import AnalysisForm
-        if not self.analysis_form:
-            self.analysis_form = AnalysisForm(self.operator_row)
-        self.analysis_form.show()
+        self.sig_go_analysis.emit(self.operator_row)
+        self.hide()
 
     def closeEvent(self, event):
         self.update_csv_log()

@@ -1,19 +1,19 @@
-from PyQt5.QtCore import Qt, QRegularExpression
+from PyQt5.QtCore import Qt, QRegularExpression, pyqtSignal
 from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtWidgets import QPushButton, QMessageBox, QVBoxLayout, QHBoxLayout
 
 from utils import find_operator_by_id, BaseWindow, create_label, create_line_edit, getbtn_style
-from info_form import InfoForm
 
 class AuthScreen(BaseWindow):
-    def __init__(self, start_screen, csv_file: str, ops_dir: str, software_start_time: str):
+    sig_auth_success = pyqtSignal(dict)
+    sig_go_back = pyqtSignal()
+
+    def __init__(self, csv_file: str, ops_dir: str, software_start_time: str):
         super().__init__(400, 204, "Авторизация")
         
-        self.start_screen = start_screen
         self.csv_file = csv_file
         self.ops_dir = ops_dir
         self.software_start_time = software_start_time
-        self.info_form = None
 
         root = QVBoxLayout(self.content_container)
         root.setContentsMargins(28, 24, 28, 22)
@@ -43,28 +43,18 @@ class AuthScreen(BaseWindow):
 
     def on_login(self):
         raw = self.in_id.text().strip()
-        
         if not raw.isdigit() or int(raw) <= 0:
             QMessageBox.warning(self, "Авторизация", "Введите корректный числовой ID больше 0.")
             return
 
         row = find_operator_by_id(self.csv_file, int(raw))
-        
         if not row:
             QMessageBox.warning(self, "Авторизация", "Оператор с таким ID не найден.")
             return
 
-        if self.info_form is None:
-            self.info_form = InfoForm(
-                self.start_screen, self, row, self.csv_file, self.ops_dir
-            )
-        else:
-            self.info_form.set_operator_row(row)
-
-        self.info_form.show()
+        self.sig_auth_success.emit(row)
         self.hide()
 
     def closeEvent(self, event):
-        if self.start_screen:
-            self.start_screen.show()
+        self.sig_go_back.emit()
         super().closeEvent(event)

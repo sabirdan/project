@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QPushButton, QFrame, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QLabel
@@ -10,12 +10,13 @@ from utils import (
 )
 
 class InstructionForm(BaseWindow):
+    sig_go_analysis = pyqtSignal(dict)
+    sig_go_control = pyqtSignal(dict)
+
     def __init__(self, operator_row: dict = None):
         super().__init__(1000, 484, "Инструкция и подключение")
         
         self.operator_row = operator_row or {}
-        self.analysis_form = None
-        self.control_form = None
 
         content_layout = QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -253,15 +254,9 @@ class InstructionForm(BaseWindow):
         right_layout.addLayout(btn_next_layout)
 
     def open_control(self):
-        from control_form import ControlForm 
-        if self.control_form is None:
-            self.control_form = ControlForm(self.operator_row)
-        self.control_form.show()
+        self.sig_go_control.emit(self.operator_row)
         self.hide()
 
     def open_analysis(self):
-        from analysis_form import AnalysisForm 
-        if self.analysis_form is None:
-            self.analysis_form = AnalysisForm(self.operator_row)
-        self.analysis_form.show()
+        self.sig_go_analysis.emit(self.operator_row)
         self.hide()

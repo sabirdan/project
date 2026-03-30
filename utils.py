@@ -100,7 +100,7 @@ def get_cv_face(frame_bgr):
         
     return None, None
 
-def cv_compare_faces(ref_gray, live_gray, threshold=0.55):
+def cv_compare_faces(ref_gray, live_gray, threshold=0.35):
     if ref_gray is None or live_gray is None:
         return False
         

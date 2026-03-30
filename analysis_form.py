@@ -88,15 +88,15 @@ class SerialWorker(QObject):
             self.ser.close()
 
 class AnalysisForm(BaseWindow):
+    sig_go_instruction = pyqtSignal(dict)
+    sig_go_control = pyqtSignal(dict)
+
     def __init__(self, operator_row: dict = None):
         super().__init__(1000, 484, "Анализ оператора")
         
         self.operator_row = operator_row or {}
         self.csv_path = csv_path()
         
-        self.instr_window = None
-        self.control_window = None
-
         content_layout = QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
@@ -444,18 +444,12 @@ class AnalysisForm(BaseWindow):
             QMessageBox.critical(self, "Ошибка CSV", f"Не удалось записать файл:\n{e}")
 
     def go_instruction(self):
-        self.close()
-        from instruction_form import InstructionForm
-        if not self.instr_window:
-            self.instr_window = InstructionForm(self.operator_row)
-        self.instr_window.show()
+        self.sig_go_instruction.emit(self.operator_row)
+        self.hide()
         
     def go_control(self):
-        self.close()
-        from control_form import ControlForm
-        if not self.control_window:
-            self.control_window = ControlForm(self.operator_row)
-        self.control_window.show()
+        self.sig_go_control.emit(self.operator_row)
+        self.hide()
 
     def closeEvent(self, event):
         self.worker.stop()

@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QApplication
 )
 
-from instruction_form import InstructionForm
 from utils import (
     make_icon, parse_hms_to_seconds, seconds_to_hms, 
     id_str, draw_to_label_with_dpr, get_cv_face, 
@@ -33,15 +32,15 @@ class FaceWorker(QObject):
 
 class InfoForm(BaseWindow):
     sig_process = pyqtSignal(object, object)
+    
+    sig_go_next = pyqtSignal(dict)
+    sig_go_back = pyqtSignal()
 
-    def __init__(self, start_screen, auth_screen, operator_row: dict, csv_file: str, ops_dir: str):
+    def __init__(self, operator_row: dict, csv_file: str, ops_dir: str):
         super().__init__(1000, 484, "Информация оператора")
         
-        self.start_screen = start_screen
-        self.auth_screen = auth_screen
         self.csv_file = csv_file
         self.ops_dir = ops_dir
-
         self.operator_row = operator_row
         
         id_raw = str(operator_row.get("id", "0")).strip()
@@ -450,23 +449,18 @@ class InfoForm(BaseWindow):
 
     def finish(self):
         self.stop_camera()
-        
         if self.face_thread.isRunning():
             self.face_thread.quit()
             self.face_thread.wait()
             
-        self.instr_form = InstructionForm(self.operator_row)
-        self.instr_form.show()
+        self.sig_go_next.emit(self.operator_row)
         self.hide()
 
     def closeEvent(self, event):
         self.stop_camera()
-        
         if self.face_thread.isRunning():
             self.face_thread.quit()
             self.face_thread.wait()
             
-        if self.auth_screen:
-            self.auth_screen.show()
-            
+        self.sig_go_back.emit()
         super().closeEvent(event)

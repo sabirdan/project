@@ -2,7 +2,7 @@ import os
 import re
 import csv
 import cv2
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QFrame, QMessageBox, QWidget, QLabel, 
@@ -18,10 +18,11 @@ from utils import (
 )
 
 class RegistrationForm(BaseWindow):
-    def __init__(self, start_screen, csv_file: str, ops_dir: str, software_start_time: str):
+    sig_go_back = pyqtSignal()
+
+    def __init__(self, csv_file: str, ops_dir: str, software_start_time: str):
         super().__init__(1000, 484, "НейроБодр")
         
-        self.start_screen = start_screen
         self.csv_file = csv_file
         self.ops_dir = ops_dir
         self.software_start_time = software_start_time
@@ -286,7 +287,7 @@ class RegistrationForm(BaseWindow):
         }
         return data, None
 
-def append_csv_row(self, operator):
+    def append_csv_row(self, operator):
         new_id = next_id(self.csv_file)
         with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([
@@ -382,12 +383,10 @@ def append_csv_row(self, operator):
 
     def go_start(self):
         self.stop_camera()
-        if self.start_screen:
-            self.start_screen.show()
+        self.sig_go_back.emit()
         self.hide()
 
     def closeEvent(self, event):
         self.stop_camera()
-        if self.start_screen:
-            self.start_screen.show()
+        self.sig_go_back.emit()
         super().closeEvent(event)
