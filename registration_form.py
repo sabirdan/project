@@ -152,7 +152,7 @@ class RegistrationForm(BaseWindow):
 
         left_layout = QVBoxLayout(self.left)
         left_layout.setContentsMargins(15, 20, 15, 20)
-        left_layout.setSpacing(10)
+        left_layout.setSpacing(10) 
 
         self.in_last = self.add_labeled_input(left_layout, "Фамилия")
         self.in_first = self.add_labeled_input(left_layout, "Имя")
