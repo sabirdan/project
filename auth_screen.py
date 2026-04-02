@@ -1,60 +1,38 @@
-from PyQt5.QtCore import Qt, QRegularExpression, pyqtSignal
-from PyQt5.QtGui import QRegularExpressionValidator
-from PyQt5.QtWidgets import QPushButton, QMessageBox, QVBoxLayout, QHBoxLayout
-
-from utils import find_operator_by_id, BaseWindow, create_label, create_line_edit, getbtn_style
+from utils import *
 
 class AuthScreen(BaseWindow):
-    sig_auth_success = pyqtSignal(dict)
-    sig_go_back = pyqtSignal()
+    signal_next = pyqtSignal(dict)
 
-    def __init__(self, csv_file: str, ops_dir: str, software_start_time: str):
-        super().__init__(400, 204, "Авторизация")
+    def __init__(self, operator_data=None):
+        super().__init__(400, 200, "Авторизация")
+        self.operator_data = operator_data if operator_data is not None else {}
+        self.csv_file_path = csv_path()
+        self.build_ui()
+
+    def build_ui(self):
+        main_layout = QVBoxLayout(self.content_container)
+
+        title_label = create_label("Авторизация оператора\nвведите ID", 20)
+        main_layout.addWidget(title_label)
+
+        row_layout = QHBoxLayout()
         
-        self.csv_file = csv_file
-        self.ops_dir = ops_dir
-        self.software_start_time = software_start_time
+        self.input_operator_id = create_line_edit()
+        self.input_operator_id.setValidator(QIntValidator(1, 999999))
+        self.input_operator_id.returnPressed.connect(self.on_login_clicked)
+        row_layout.addWidget(self.input_operator_id)
+        
+        self.button_login = create_button("Авторизоваться", 150, 50, self.on_login_clicked)
+        row_layout.addWidget(self.button_login)
+        
+        main_layout.addLayout(row_layout)
 
-        root = QVBoxLayout(self.content_container)
-        root.setContentsMargins(28, 24, 28, 22)
+    def on_login_clicked(self):
+        user_id_text = self.input_operator_id.text().strip()
 
-        title = create_label("Авторизация оператора\nвведите ID", 22, bold=True)
-        root.addWidget(title, alignment=Qt.AlignLeft | Qt.AlignTop)
-        root.addStretch(1)
-
-        row = QHBoxLayout()
-        row.setSpacing(18)
-
-        self.in_id = create_line_edit()
-        validator = QRegularExpressionValidator(QRegularExpression(r"\d+"), self)
-        self.in_id.setValidator(validator)
-
-        self.btn_login = QPushButton("Авторизоваться", self)
-        self.btn_login.setFixedSize(156, 52)
-        self.btn_login.setCursor(Qt.PointingHandCursor)
-        self.btn_login.setStyleSheet(getbtn_style())
-
-        row.addWidget(self.in_id, 1)
-        row.addWidget(self.btn_login, 0)
-        root.addLayout(row)
-
-        self.btn_login.clicked.connect(self.on_login)
-        self.in_id.returnPressed.connect(self.on_login)
-
-    def on_login(self):
-        raw = self.in_id.text().strip()
-        if not raw.isdigit() or int(raw) <= 0:
-            QMessageBox.warning(self, "Авторизация", "Введите корректный числовой ID больше 0.")
-            return
-
-        row = find_operator_by_id(self.csv_file, int(raw))
-        if not row:
-            QMessageBox.warning(self, "Авторизация", "Оператор с таким ID не найден.")
-            return
-
-        self.sig_auth_success.emit(row)
+        operator_data = find_operator_by_id(self.csv_file_path, int(user_id_text))
+        self.signal_next.emit(operator_data)
         self.hide()
 
     def closeEvent(self, event):
-        self.sig_go_back.emit()
         super().closeEvent(event)

@@ -1,392 +1,216 @@
-import os
-import re
-import csv
-import cv2
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
-    QFrame, QMessageBox, QWidget, QLabel, 
-    QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy
-)
-
-from utils import (
-    make_icon, id_str, next_id, now_date_str, 
-    now_time_str, draw_to_label_with_dpr, opencv_save_jpg,
-    process_face, cv_find_match, cv_load_known_faces,
-    BaseWindow, create_label, COLOR_BG, COLOR_GREEN, 
-    COLOR_BTN_BG, COLOR_DISABLED, create_line_edit, getbtn_style, 
-)
+from utils import *
 
 class RegistrationForm(BaseWindow):
-    sig_go_back = pyqtSignal()
+    signal_next = pyqtSignal(dict)
 
-    def __init__(self, csv_file: str, ops_dir: str, software_start_time: str):
-        super().__init__(1000, 484, "НейроБодр")
-        
-        self.csv_file = csv_file
-        self.ops_dir = ops_dir
+    def __init__(self, software_start_time, operator_data=None):
+        super().__init__(1000, 490, "Регистрация")
+        self.operator_data = operator_data if operator_data is not None else {}
+        self.csv_file_path = csv_path()
+        self.operators_directory = ensure_dirs()
         self.software_start_time = software_start_time
-
-        self.current_id = None
-        self.cap = None
-        self._known_enc_cache = None
-        self.last_frame = None
         
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.grab_frame)
+        self.video_capture = None
+        self.camera_timer = QTimer(self)
+        self.input_fields = {}
 
-        content_layout = QVBoxLayout(self.content_container)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
+        self.build_ui()
+        self.init_logic()
 
-        self.build_ui(content_layout)
-        self.set_status(False, assigned=False)
+    def build_ui(self):
+        main_layout = QVBoxLayout(self.content_container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-    def reset_form(self):
-        self.current_id = None
-        self._known_enc_cache = None
-        self.last_frame = None
+        header_frame = QFrame()
+        header_frame.setFixedHeight(120)
+        header_frame.setStyleSheet(f"background-color: {COLOR_GREEN};")
         
-        inputs = (self.in_last, self.in_first, self.in_middle, self.in_age)
-        for inp in inputs:
-            inp.clear()
+        header_layout = QVBoxLayout(header_frame)
+        label_title = create_label("НейроБодр", 40, "white", Qt.AlignCenter)
+        header_layout.addWidget(label_title)
         
-        self.set_status(False, assigned=False)
-        self.btn_next.setEnabled(False)
+        separator_line = QFrame()
+        separator_line.setFixedSize(700, 4)
+        separator_line.setStyleSheet("background-color: white;")
+        header_layout.addWidget(separator_line, alignment=Qt.AlignCenter)
         
-        default_pix = QPixmap("assets/face.png")
-        if not default_pix.isNull():
-            self.cam_view.setPixmap(
-                default_pix.scaled(self.cam_view.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            )
+        label_subtitle = create_label("Программа для мониторинга состояния водителей", 16, "white", Qt.AlignCenter)
+        header_layout.addWidget(label_subtitle)
+        main_layout.addWidget(header_frame)
 
-    def build_ui(self, parent_layout):
-        header = QFrame()
-        header.setFixedHeight(120)
-        header.setStyleSheet(f"background-color: {COLOR_GREEN};")
-        header_layout = QVBoxLayout(header)
-        header_layout.setContentsMargins(0, 10, 0, 10)
-        header_layout.setSpacing(5)
+        grid_container = QWidget()
+        grid_container.setStyleSheet("background-color: white;")
+        grid_layout = QGridLayout(grid_container)
+        grid_layout.setContentsMargins(0, 4, 0, 0)
+        grid_layout.setColumnStretch(0, 1)
+        grid_layout.setColumnStretch(1, 1)
+        grid_layout.setColumnStretch(2, 1)
+        main_layout.addWidget(grid_container)
 
-        t1 = create_label("НейроБодр", 40, bold=True, color="white", align=Qt.AlignCenter)
-        header_layout.addWidget(t1)
-
-        line_layout = QHBoxLayout()
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        line = QFrame()
-        line.setFixedHeight(2)
-        line.setStyleSheet("background-color: white;")
-        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        line_layout.addWidget(line, stretch=3) 
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        header_layout.addLayout(line_layout)
-
-        t2 = create_label("Программа для мониторинга состояния водителей", 16, color="white", align=Qt.AlignCenter)
-        header_layout.addWidget(t2)
-
-        parent_layout.addWidget(header)
-
-        body_container = QWidget()
-        body_container.setStyleSheet("background-color: white;")
+        titles_list = ["Регистрация оператора", "Идентификация", "Информационный блок"]
         
-        body_main_layout = QVBoxLayout(body_container)
-        body_main_layout.setContentsMargins(0, 4, 0, 0)
-        body_main_layout.setSpacing(4)
-
-        top_row = QWidget()
-        top_row.setFixedHeight(44)
-        top_layout = QHBoxLayout(top_row)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.setSpacing(4)
-
-        left_header = QFrame()
-        left_header.setStyleSheet(f"background-color: {COLOR_BG};")
-        mid_header = QFrame()
-        mid_header.setStyleSheet(f"background-color: {COLOR_BG};")
-        right_header = QFrame()
-        right_header.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        top_layout.addWidget(left_header, stretch=1)
-        top_layout.addWidget(mid_header, stretch=1)
-        top_layout.addWidget(right_header, stretch=1)
-
-        lh_layout = QVBoxLayout(left_header)
-        lbl_reg = create_label("Регистрация оператора", 14, bold=True, align=Qt.AlignCenter)
-        lh_layout.addWidget(lbl_reg)
-
-        mh_layout = QHBoxLayout(mid_header)
-        self.btn_identify = QPushButton("Идентификация")
-        self.btn_identify.setFixedSize(200, 35)
-        self.btn_identify.setCursor(Qt.PointingHandCursor)
-        self.btn_identify.setStyleSheet(
-            getbtn_style() + 
-            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
-        )
-        self.btn_identify.clicked.connect(self.on_identify_clicked)
-        mh_layout.addWidget(self.btn_identify, alignment=Qt.AlignCenter)
-
-        rh_layout = QVBoxLayout(right_header)
-        lbl_info = create_label("Информационный блок", 14, bold=True, align=Qt.AlignCenter)
-        rh_layout.addWidget(lbl_info)
-
-        body_main_layout.addWidget(top_row)
-
-        bottom_row = QWidget()
-        bottom_layout = QHBoxLayout(bottom_row)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_layout.setSpacing(4)
-
-        self.left = QFrame()
-        self.left.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.mid = QFrame()
-        self.mid.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.right = QFrame()
-        self.right.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        bottom_layout.addWidget(self.left, stretch=1)
-        bottom_layout.addWidget(self.mid, stretch=1)
-        bottom_layout.addWidget(self.right, stretch=1)
-
-        body_main_layout.addWidget(bottom_row, stretch=1)
-        parent_layout.addWidget(body_container, stretch=1)
-
-        left_layout = QVBoxLayout(self.left)
-        left_layout.setContentsMargins(15, 20, 15, 20)
-        left_layout.setSpacing(10) 
-
-        self.in_last = self.add_labeled_input(left_layout, "Фамилия")
-        self.in_first = self.add_labeled_input(left_layout, "Имя")
-        self.in_middle = self.add_labeled_input(left_layout, "Отчество")
-        self.in_age = self.add_labeled_input(left_layout, "Возраст")
-
-        left_layout.addStretch()
-
-        btn_save_layout = QHBoxLayout()
-        btn_save_layout.addStretch()
-        self.btn_save = self.createbtn("Записать", self.on_save, 120)
-        btn_save_layout.addWidget(self.btn_save)
-        left_layout.addLayout(btn_save_layout)
-
-        mid_layout = QVBoxLayout(self.mid)
-        mid_layout.setContentsMargins(15, 20, 15, 20)
-        
-        mid_layout.addStretch()
-        self.cam_view = QLabel()
-        self.cam_view.setFixedSize(300, 220)
-        self.cam_view.setAlignment(Qt.AlignCenter)
-        self.cam_view.setStyleSheet("background-color: white;") 
-        
-        cam_layout = QHBoxLayout()
-        cam_layout.addStretch()
-        cam_layout.addWidget(self.cam_view)
-        cam_layout.addStretch()
-        mid_layout.addLayout(cam_layout)
-        mid_layout.addStretch()
-
-        right_layout = QVBoxLayout(self.right)
-        right_layout.setContentsMargins(15, 20, 15, 20)
-        right_layout.setSpacing(10)
-
-        status_layout = QHBoxLayout()
-        self.status_text = create_label("", 14)
-        
-        self.status_icon = QLabel()
-        self.status_icon.setFixedSize(28, 28)
-        self.status_icon.setScaledContents(True)
-        
-        status_layout.addWidget(self.status_text)
-        status_layout.addStretch()
-        status_layout.addWidget(self.status_icon)
-        right_layout.addLayout(status_layout)
-
-        self.id_banner = create_label("", 18, bold=True, align=Qt.AlignCenter)
-        self.id_banner.setFixedHeight(46)
-        right_layout.addWidget(self.id_banner)
-
-        self.info_hint = create_label("", 14)
-        right_layout.addWidget(self.info_hint)
-
-        right_layout.addStretch()
-
-        btn_next_layout = QHBoxLayout()
-        btn_next_layout.addStretch()
-        self.btn_next = self.createbtn("Далее", self.go_start, 100)
-        btn_next_layout.addWidget(self.btn_next)
-        right_layout.addLayout(btn_next_layout)
-
-    def createbtn(self, text, callback, width):
-        btn = QPushButton(text)
-        btn.setFixedSize(width, 34)
-        btn.setCursor(Qt.PointingHandCursor)
-        btn.setStyleSheet(
-            getbtn_style() + 
-            f" QPushButton:disabled {{ background-color: {COLOR_DISABLED}; color: gray; }}"
-        )
-        btn.clicked.connect(callback)
-        return btn
-
-    def add_labeled_input(self, parent_layout, text):
-        row_layout = QHBoxLayout()
-        row_layout.setSpacing(10)
-        
-        lbl = create_label(text, 14, bold=True, align=Qt.AlignRight | Qt.AlignVCenter)
-        lbl.setFixedWidth(85)
-
-        inp = create_line_edit(height=36, font_size=14, padding=10)
-
-        row_layout.addWidget(lbl)
-        row_layout.addWidget(inp)
-        parent_layout.addLayout(row_layout)
-        
-        return inp
-
-    def set_status(self, ok: bool, assigned: bool):
-        self.status_text.setText("Оператор определен" if ok else "Оператор не определен")
-        
-        pixmap = make_icon(ok)
-        if pixmap:
-            self.status_icon.setPixmap(pixmap)
-        
-        color = COLOR_GREEN if ok else "red"
-        self.id_banner.setStyleSheet(f"background-color: {color}; color: {COLOR_BTN_BG};")
-        
-        hint = 'Для запуска программы\nнажмите "Далее"' if ok else "Запуск программы\nневозможен"
-        self.info_hint.setText(hint)
-        self.btn_next.setEnabled(ok)
-        
-        if assigned and self.current_id:
-            self.id_banner.setText(f"ID {id_str(self.current_id)}")
-        else:
-            self.id_banner.setText("ID не присвоен")
-
-    def validate_fields(self):
-        ln = self.in_last.text().strip()
-        fn = self.in_first.text().strip()
-        mn = self.in_middle.text().strip()
-        age = self.in_age.text().strip()
-        
-        name_re = re.compile(r"^[A-Za-zА-Яа-яЁё \-]{1,50}$")
-        
-        if not ln or not fn:
-            return None, "Фамилия и Имя обязательны."
+        for index, text in enumerate(titles_list):
+            title_frame = QFrame()
+            title_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+            title_frame.setFixedHeight(44)
+            title_layout = QHBoxLayout(title_frame)
             
-        if not name_re.match(ln) or not name_re.match(fn):
-            return None, "ФИО: только буквы, пробел, дефис."
-            
-        if mn and not name_re.match(mn):
-            return None, "ФИО: только буквы, пробел, дефис."
-            
-        if not age.isdigit() or int(age) < 18: 
-            return None, "Возраст должен быть числом не менее 18 лет."
-            
-        data = {
-            "last_name": ln, 
-            "first_name": fn, 
-            "middle_name": mn, 
-            "age": age
-        }
-        return data, None
+            if index == 1:
+                self.button_identify = create_button("Идентификация", 200, 35, self.on_identify_clicked)
+                title_layout.addWidget(self.button_identify)
+            else:
+                title_label = create_label(text, align=Qt.AlignCenter)
+                title_layout.addWidget(title_label)
+                
+            grid_layout.addWidget(title_frame, 0, index)
 
-    def append_csv_row(self, operator):
-        new_id = next_id(self.csv_file)
-        with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow([
-                str(new_id), 
-                operator["last_name"].strip(), 
-                operator["first_name"].strip(),
-                operator["middle_name"].strip(), 
-                str(operator["age"]).strip(),
-                now_date_str(),
-                now_time_str(), 
+        self.panel_left = QFrame()
+        self.panel_middle = QFrame()
+        self.panel_right = QFrame()
+        
+        panels_list = [self.panel_left, self.panel_middle, self.panel_right]
+        
+        for index, panel in enumerate(panels_list):
+            panel.setStyleSheet(f"background-color: {COLOR_BG};")
+            grid_layout.addWidget(panel, 1, index)
+            
+        left_layout = QVBoxLayout(self.panel_left)
+        
+        for field_name in ["Фамилия", "Имя", "Отчество", "Возраст"]:
+            row_layout = QHBoxLayout()
+            field_label = create_label(field_name)
+            row_layout.addWidget(field_label, 1)
+            
+            input_widget = create_line_edit(field_height=36, font_size=14)
+            row_layout.addWidget(input_widget, 2)
+            
+            left_layout.addLayout(row_layout)
+            self.input_fields[field_name] = input_widget
+            
+        button_save = create_button("Записать", 120, 34, self.on_save_clicked)
+        left_layout.addWidget(button_save, alignment=Qt.AlignRight)
+
+        middle_layout = QVBoxLayout(self.panel_middle)
+        self.camera_view_label = QLabel()
+        self.camera_view_label.setFixedSize(300, 220)
+        self.camera_view_label.setStyleSheet("background-color: white;")
+        middle_layout.addWidget(self.camera_view_label, alignment=Qt.AlignCenter)
+
+        right_layout = QVBoxLayout(self.panel_right)
+        
+        status_row_layout = QHBoxLayout()
+        self.label_status_text = create_label("")
+        self.label_status_icon = QLabel()
+        status_row_layout.addWidget(self.label_status_text)
+        status_row_layout.addWidget(self.label_status_icon)
+        right_layout.addLayout(status_row_layout)
+
+        self.label_id_banner = create_label("", align=Qt.AlignCenter)
+        self.label_id_banner.setFixedHeight(46)
+        right_layout.addWidget(self.label_id_banner)
+        
+        self.label_info_hint = create_label("")
+        right_layout.addWidget(self.label_info_hint)
+        
+        self.button_next = create_button("Далее", 100, 34, self.go_next)
+        right_layout.addWidget(self.button_next, alignment=Qt.AlignRight)
+
+    def init_logic(self):
+        self.camera_timer.timeout.connect(self.process_camera_frame)
+        self.update_ui()
+
+    def on_save_clicked(self):
+        age_text = self.input_fields["Возраст"].text()
+        if not age_text.isdigit() or int(age_text) < 18:
+            QMessageBox.warning(self, "Ошибка", "Минимальный возраст 18 лет")
+            return
+            
+        self.current_id = next_id(self.csv_file_path)
+        with open(self.csv_file_path, "a", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                str(self.current_id), 
+                self.input_fields["Фамилия"].text(), 
+                self.input_fields["Имя"].text(),
+                self.input_fields["Отчество"].text(), 
+                age_text, 
+                now_date_str(), 
+                now_time_str(),
                 self.software_start_time, 
                 "00:00:00"
             ])
-        return new_id
-
-    def start_camera(self):
-        self.cap = cv2.VideoCapture(0)
-        self.timer.start(30)
-
-    def stop_camera(self):
-        self.timer.stop()
-        if self.cap:
-            self.cap.release()
-        self.cap = None
-        
-        default_pix = QPixmap("assets/face.png")
-        if not default_pix.isNull():
-            self.cam_view.setPixmap(
-                default_pix.scaled(self.cam_view.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            )
-
-    def grab_frame(self):
-        if not self.cap:
-            return
-        ok, frame = self.cap.read()
-        if ok and frame is not None:
-            self.last_frame = cv2.flip(frame, 1)
-            draw_to_label_with_dpr(self.last_frame, self.cam_view)
 
     def on_identify_clicked(self):
-        self.start_camera()
-        self.set_status(False, assigned=True)
-        QTimer.singleShot(1200, self.try_verify)
+        self.video_capture = cv2.VideoCapture(0)
+        self.camera_timer.start(30)
+        self.update_identification_status(False)
+        QTimer.singleShot(1200, self.try_verify_face)
 
-    def try_verify(self):
-        if self.last_frame is None:
-            return
+    def process_camera_frame(self):
+        if self.video_capture:
+            is_successful, frame = self.video_capture.read()
+            if is_successful:
+                self.last_video_frame = cv2.flip(frame, 1)
+                draw_to_label(self.last_video_frame, self.camera_view_label)
 
-        if self.current_id is None:
-            operator, err = self.validate_fields()
-            if err:
-                self.stop_camera()
-                QMessageBox.warning(self, "Ошибка", f"Сначала заполните данные: {err}")
-                return
+    def update_ui(self):
+        self.current_id = None
+        self.last_video_frame = None
+        
+        for input_widget in self.input_fields.values():
+            input_widget.clear()
             
-            self.current_id = self.append_csv_row(operator)
-            self._known_enc_cache = None
-
-        live_face_gray, live_loc = process_face(self.last_frame, draw=False)
-        
-        if not self._known_enc_cache:
-            self._known_enc_cache = cv_load_known_faces(self.ops_dir, exclude_id=self.current_id)
-
-        is_invalid = live_face_gray is None
-        is_duplicate = cv_find_match(self._known_enc_cache, live_face_gray) is not None
-        
-        if is_invalid or is_duplicate:
-            self.set_status(False, assigned=True)
-            res = QMessageBox.question(
-                self, "Идентификация", "Пройти идентификацию заново?", 
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if res == QMessageBox.Yes:
-                QTimer.singleShot(700, self.try_verify)
-            else:
-                self.stop_camera()
-            return
-
-        save_path = os.path.join(self.ops_dir, f"ID_{id_str(self.current_id)}.jpg")
-        opencv_save_jpg(self.last_frame, save_path, face_loc=live_loc)
-        self.set_status(True, assigned=True)
-
-    def on_save(self):
-        if self.current_id is None:
-            operator, err = self.validate_fields()
-            if err:
-                QMessageBox.warning(self, "Проверка данных", err)
-                return
-            self.current_id = self.append_csv_row(operator)
-            self._known_enc_cache = None
-
-        QMessageBox.information(self, "Успех", "Данные сохранены. Нажмите «Идентификация».")
-
-    def go_start(self):
+        self.update_identification_status(False)
         self.stop_camera()
-        self.sig_go_back.emit()
+
+    def update_identification_status(self, is_ok):
+        status_config = {
+            True: ("определен", COLOR_GREEN, f"ID {id_str(self.current_id)}", "Для запуска программы\nнажмите 'Далее'"),
+            False: ("не определен", "red", "ID не присвоен", "Запуск программы\nневозможен")
+        }
+        
+        status_text, banner_color, banner_text, hint_text = status_config[is_ok]
+        
+        self.label_status_text.setText(f"Оператор {status_text}")
+        self.label_id_banner.setStyleSheet(f"background-color: {banner_color}; color: {COLOR_BTN_BG};")
+        self.label_id_banner.setText(banner_text)
+        self.label_info_hint.setText(hint_text)
+        self.button_next.setEnabled(is_ok)
+        
+        icon_pixmap = make_icon(is_ok)
+        if icon_pixmap:
+            self.label_status_icon.setPixmap(icon_pixmap)
+
+    def try_verify_face(self):
+        if self.last_video_frame is None:
+            return
+            
+        face_image, face_location = process_face(self.last_video_frame, draw_rectangle=False)
+        
+        if face_image is not None:
+            image_path = os.path.join(self.operators_directory, f"ID_{id_str(self.current_id)}.jpg")
+            opencv_save_jpg(self.last_video_frame, image_path, face_location)
+            self.update_identification_status(True)
+            return
+            
+        if QMessageBox.question(self, "Не пройдено", "Пройти идентификацию заново?") == QMessageBox.Yes:
+            QTimer.singleShot(700, self.try_verify_face)
+
+    def stop_camera(self):
+        self.camera_timer.stop()
+        if self.video_capture:
+            self.video_capture.release()
+        self.video_capture = None
+        self.camera_view_label.clear()
+
+    def go_next(self):
+        self.stop_camera()
+        if self.current_id:
+            operator_data = find_operator_by_id(self.csv_file_path, self.current_id)
+            self.signal_next.emit(operator_data)
         self.hide()
 
     def closeEvent(self, event):
         self.stop_camera()
-        self.sig_go_back.emit()
         super().closeEvent(event)

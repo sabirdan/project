@@ -1,441 +1,320 @@
-import os
 import time
 import serial
 import collections
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot, QObject
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
-    QWidget, QPushButton, QFrame, QMessageBox, 
-    QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QLabel
-)
-
-from utils import (
-    BaseWindow, create_label, csv_path, update_db,
-    COLOR_BG, COLOR_GREEN, COLOR_BTN_BG, getbtn_style, create_line_edit
-)
+from utils import *
 
 class SerialWorker(QObject):
     data_received = pyqtSignal(str, str, str)
 
-    def __init__(self, port="COM5", baud=9600):
+    def __init__(self, port_name="COM5", baud_rate=9600):
         super().__init__()
-        self.port = port
-        self.baud = baud
-        self.running = True
-        self.ser = None
-        self.raw_buffer = collections.deque(maxlen=10)
-        self.history = collections.deque(maxlen=150)
-        self.is_peak = False
+        self.port_name = port_name
+        self.baud_rate = baud_rate
+        self.is_running = True
+        self.serial_connection = None
 
     @pyqtSlot()
     def run(self):
         try:
-            self.ser = serial.Serial(self.port, self.baud, timeout=1)
+            self.serial_connection = serial.Serial(self.port_name, self.baud_rate, timeout=0.1)
+            history_data = collections.deque(maxlen=100)
+            beats_data = collections.deque(maxlen=10)
             last_peak_time = time.time()
-            beats = []
-
-            while self.running:
-                if self.ser.in_waiting:
-                    line = self.ser.readline().decode("utf-8", errors="ignore").strip()
-                    
-                    if line.isdigit():
-                        val = int(line)
-                        self.raw_buffer.append(val)
-                        
-                        filtered_val = int(sum(self.raw_buffer) / len(self.raw_buffer))
-                        self.history.append(filtered_val)
-                        curr_time = time.time()
-                        
-                        if len(self.history) >= 50:
-                            l_max = max(self.history)
-                            l_min = min(self.history)
-                            amp = l_max - l_min
-                            
-                            th_on = l_min + (amp * 0.7)
-                            th_off = l_min + (amp * 0.4)
-                            
-                            if amp > 30:
-                                if not self.is_peak and filtered_val > th_on:
-                                    dur = curr_time - last_peak_time
-                                    if dur > 0.3:
-                                        bpm = int(60 / dur)
-                                        if 40 < bpm < 180:
-                                            beats.append(bpm)
-                                            if len(beats) > 8:
-                                                beats.pop(0)
-                                        last_peak_time = curr_time
-                                    self.is_peak = True
-                                
-                                elif self.is_peak and filtered_val < th_off:
-                                    self.is_peak = False
-                            else:
-                                self.is_peak = False
-                        
-                        avg_bpm = int(sum(beats) / len(beats)) if beats else 0
-                        status_pulse = "OK" if avg_bpm > 0 else "Поиск..."
-                        pulse_val = str(avg_bpm) if avg_bpm > 0 else "--"
-                        
-                        self.data_received.emit("OK", status_pulse, pulse_val)
+            is_peak = False
+            
+            while self.is_running:
+                line_text = self.serial_connection.readline().decode("utf-8", "ignore").strip()
+                if not line_text.isdigit():
+                    continue
+                
+                value = int(line_text)
+                history_data.append(value)
+                if len(history_data) < 50:
+                    continue
+                
+                current_time = time.time()
+                max_value = max(history_data)
+                average_value = sum(history_data) / len(history_data)
+                threshold_value = average_value + (max_value - average_value) * 0.5
+                
+                if value > threshold_value and not is_peak and (current_time - last_peak_time) > 0.4:
+                    bpm_value = int(60 / (current_time - last_peak_time))
+                    if 45 < bpm_value < 180:
+                        beats_data.append(bpm_value)
+                    last_peak_time = current_time
+                    is_peak = True
+                elif value < average_value:
+                    is_peak = False
+                
+                if beats_data:
+                    result_bpm = sum(beats_data) // len(beats_data)
                 else:
-                    time.sleep(0.005)
-        except Exception:
+                    result_bpm = 0
+                    
+                if result_bpm > 0:
+                    self.data_received.emit("OK", "OK", str(result_bpm))
+                else:
+                    self.data_received.emit("OK", "Поиск...", "--")
+        except:
             self.data_received.emit("FAIL", "FAIL", "ERR")
 
     def stop(self):
-        self.running = False
-        if self.ser and self.ser.is_open:
-            self.ser.close()
+        self.is_running = False
+        if self.serial_connection and self.serial_connection.is_open: 
+            self.serial_connection.close()
 
 class AnalysisForm(BaseWindow):
-    sig_go_instruction = pyqtSignal(dict)
-    sig_go_control = pyqtSignal(dict)
+    signal_next = pyqtSignal(dict)
 
-    def __init__(self, operator_row: dict = None):
-        super().__init__(1000, 484, "Анализ оператора")
+    def __init__(self, operator_data=None):
+        super().__init__(1000, 490, "Анализ оператора")
+        self.operator_data = operator_data if operator_data is not None else {}
+        self.csv_file_path = csv_path()
         
-        self.operator_row = operator_row or {}
-        self.csv_path = csv_path()
-        
-        content_layout = QVBoxLayout(self.content_container)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
+        self.build_ui()
+        self.init_logic()
 
-        self.build_ui(content_layout)
-        self.fill_data()
+    def build_ui(self):
+        main_layout = QVBoxLayout(self.content_container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        self.thread = QThread()
-        self.worker = SerialWorker(port="COM5")
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.data_received.connect(self.update_terminal_ui)
-        self.thread.start()
-
-    def fill_data(self):
-        f_name = self.operator_row.get("first_name", "")
-        l_name = self.operator_row.get("last_name", "")
-        self.lbl_op_name.setText(f"{l_name} {f_name}")
-        
-        if hasattr(self, "edit_threshold") and self.operator_row.get("pulse_threshold_critical"):
-            self.edit_threshold.setText(self.operator_row["pulse_threshold_critical"])
-        
-        if hasattr(self, "edit_normal") and self.operator_row.get("pulse_normal"):
-            self.edit_normal.setText(self.operator_row["pulse_normal"])
-
-    def build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
         header_container.setStyleSheet("background-color: white;")
+        header_grid = QGridLayout(header_container)
+        header_grid.setContentsMargins(0, 0, 0, 0)
+        header_grid.setColumnStretch(0, 2)
+        header_grid.setColumnStretch(1, 3)
+        header_grid.setColumnStretch(2, 2)
         
-        header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(4)
+        self.menu_frame = QFrame()
+        self.menu_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        header_grid.addWidget(self.menu_frame, 0, 0)
+        
+        self.logo_frame = QFrame()
+        self.logo_frame.setStyleSheet(f"background-color: {COLOR_GREEN};")
+        header_grid.addWidget(self.logo_frame, 0, 1)
+        
+        self.id_frame = QFrame()
+        self.id_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        header_grid.addWidget(self.id_frame, 0, 2)
+        
+        main_layout.addWidget(header_container)
 
-        menu_frame = QFrame()
-        menu_frame.setStyleSheet(f"background-color: {COLOR_BG};")
-        logo_frame = QFrame()
-        logo_frame.setStyleSheet(f"background-color: {COLOR_GREEN};")
-        id_frame = QFrame()
-        id_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        menu_layout = QVBoxLayout(self.menu_frame)
+        label_menu = create_label("Меню управления", 18, align=Qt.AlignCenter)
+        menu_layout.addWidget(label_menu)
+        
+        buttons_layout = QHBoxLayout()
+        button_style = "color: white; border-radius: 18px; font: bold 14px 'Times New Roman';"
+        
+        button_instruction = QPushButton("Инструкция")
+        button_instruction.setFixedHeight(36)
+        button_instruction.setStyleSheet(f"background-color: purple; {button_style}")
+        buttons_layout.addWidget(button_instruction)
+        
+        button_analysis = QPushButton("Анализ")
+        button_analysis.setFixedHeight(36)
+        button_analysis.setStyleSheet(f"background-color: {COLOR_GREEN}; {button_style}")
+        buttons_layout.addWidget(button_analysis)
+        
+        button_control = QPushButton("Управление")
+        button_control.setFixedHeight(36)
+        button_control.setStyleSheet(f"background-color: purple; {button_style}")
+        buttons_layout.addWidget(button_control)
+        
+        menu_layout.addLayout(buttons_layout)
 
-        header_layout.addWidget(menu_frame, stretch=1)
-        header_layout.addWidget(logo_frame, stretch=1)
-        header_layout.addWidget(id_frame, stretch=1)
+        logo_layout = QVBoxLayout(self.logo_frame)
+        label_logo_title = create_label("НейроБодр", 24, "white", Qt.AlignCenter)
+        logo_layout.addWidget(label_logo_title)
+        
+        separator_line = QFrame()
+        separator_line.setFixedHeight(2)
+        separator_line.setStyleSheet("background-color: white; margin-left: 40px; margin-right: 40px;")
+        logo_layout.addWidget(separator_line)
+        
+        label_logo_subtitle = create_label("Программа для мониторинга\nсостояния водителей", color="white", align=Qt.AlignCenter)
+        logo_layout.addWidget(label_logo_subtitle)
 
-        menu_vbox = QVBoxLayout(menu_frame)
-        menu_vbox.setContentsMargins(10, 15, 10, 15)
+        id_layout = QVBoxLayout(self.id_frame)
+        id_layout.setContentsMargins(0, 0, 0, 0)
         
-        lbl_menu = create_label("Меню управления", 18, align=Qt.AlignCenter)
-        menu_vbox.addWidget(lbl_menu)
-        menu_vbox.addStretch()
+        label_id_title = create_label("Идентификация", align=Qt.AlignCenter)
+        label_id_title.setFixedHeight(48)
+        label_id_title.setStyleSheet("border-bottom: 4px solid white;")
+        id_layout.addWidget(label_id_title)
         
-        btn_hbox = QHBoxLayout()
-        b_style = "color: white; border-radius: 18px; font-family: Times New Roman; font-size: 14px; font-weight: bold;"
+        data_layout = QHBoxLayout()
+        data_layout.setContentsMargins(10, 10, 10, 10)
         
-        self.btn_instr = QPushButton("Инструкция")
-        self.btn_instr.setFixedHeight(36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_instr.clicked.connect(self.go_instruction)
+        label_operator_defined = create_label("Оператор\nопределен:")
+        data_layout.addWidget(label_operator_defined)
         
-        self.btn_analysis = QPushButton("Анализ")
-        self.btn_analysis.setFixedHeight(36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: {COLOR_GREEN}; {b_style} }}")
-        
-        self.btn_control = QPushButton("Управление")
-        self.btn_control.setFixedHeight(36)
-        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_control.clicked.connect(self.go_control)
-        
-        btn_hbox.addWidget(self.btn_instr)
-        btn_hbox.addWidget(self.btn_analysis)
-        btn_hbox.addWidget(self.btn_control)
-        menu_vbox.addLayout(btn_hbox)
-
-        logo_vbox = QVBoxLayout(logo_frame)
-        logo_vbox.setContentsMargins(0, 10, 0, 10)
-        logo_vbox.setSpacing(5)
-        
-        lbl_logo = create_label("НейроБодр", 24, bold=True, color="white", align=Qt.AlignCenter)
-        logo_vbox.addWidget(lbl_logo)
-        
-        line_layout = QHBoxLayout()
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        line = QFrame()
-        line.setFixedHeight(2)
-        line.setStyleSheet("background-color: white;")
-        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        line_layout.addWidget(line, stretch=3) 
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        logo_vbox.addLayout(line_layout)
-        
-        lbl_desc = create_label("Программа для мониторинга\nсостояния водителей", 14, color="white", align=Qt.AlignCenter)
-        logo_vbox.addWidget(lbl_desc)
-
-        id_vbox = QVBoxLayout(id_frame)
-        id_vbox.setContentsMargins(0, 0, 0, 0)
-        id_vbox.setSpacing(0)
-        
-        lbl_id_title = create_label("Идентификация", 14, align=Qt.AlignCenter)
-        lbl_id_title.setFixedHeight(44)
-        id_vbox.addWidget(lbl_id_title)
-        
-        id_sep = QFrame()
-        id_sep.setFixedHeight(4)
-        id_sep.setStyleSheet("background-color: white;")
-        id_vbox.addWidget(id_sep)
-        
-        id_data_hbox = QHBoxLayout()
-        id_data_hbox.setContentsMargins(20, 10, 20, 10)
-        
-        lbl_op_status = create_label("Оператор\nопределен:", 14)
-        self.lbl_op_name = create_label("", 16)
-        
-        id_data_hbox.addWidget(lbl_op_status)
-        id_data_hbox.addStretch()
-        id_data_hbox.addWidget(self.lbl_op_name)
-        id_vbox.addLayout(id_data_hbox)
-
-        parent_layout.addWidget(header_container)
+        first_name = self.operator_data.get("first_name", "")
+        last_name = self.operator_data.get("last_name", "")
+        label_operator_name = create_label(f"{last_name} {first_name}", 16)
+        data_layout.addWidget(label_operator_name)
+        id_layout.addLayout(data_layout)
 
         body_container = QWidget()
         body_container.setStyleSheet("background-color: white;")
+        body_layout = QHBoxLayout(body_container)
+        body_layout.setContentsMargins(0, 4, 0, 0)
+        main_layout.addWidget(body_container, stretch=1)
+
+        self.left_column = QFrame()
+        self.left_column.setStyleSheet(f"background-color: {COLOR_BG};")
+        body_layout.addWidget(self.left_column, stretch=2)
         
-        body_main_layout = QVBoxLayout(body_container)
-        body_main_layout.setContentsMargins(0, 4, 0, 0)
-        body_main_layout.setSpacing(4)
+        left_column_layout = QVBoxLayout(self.left_column)
+        left_column_layout.setContentsMargins(0, 0, 0, 0)
 
-        top_row = QWidget()
-        top_row.setFixedHeight(44)
-        top_layout = QHBoxLayout(top_row)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.setSpacing(4)
+        label_left_title = create_label("Анализ оператора", align=Qt.AlignCenter)
+        label_left_title.setFixedHeight(44)
+        label_left_title.setStyleSheet("border-bottom: 4px solid white;")
+        left_column_layout.addWidget(label_left_title)
 
-        left_header = QFrame()
-        left_header.setStyleSheet(f"background-color: {COLOR_BG};")
-        right_header = QFrame()
-        right_header.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        top_layout.addWidget(left_header, stretch=2)
-        top_layout.addWidget(right_header, stretch=1)
-
-        lh_layout = QVBoxLayout(left_header)
-        lbl_analysis = create_label("Анализ оператора", 14, align=Qt.AlignCenter)
-        lh_layout.addWidget(lbl_analysis)
-
-        rh_layout = QVBoxLayout(right_header)
-        lbl_conn = create_label("Вид подключения", 14, align=Qt.AlignCenter)
-        rh_layout.addWidget(lbl_conn)
-
-        body_main_layout.addWidget(top_row)
-
-        bottom_row = QWidget()
-        bottom_layout = QHBoxLayout(bottom_row)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_layout.setSpacing(4)
-
-        self.left_col = QFrame()
-        self.left_col.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.right_col = QFrame()
-        self.right_col.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        bottom_layout.addWidget(self.left_col, stretch=2)
-        bottom_layout.addWidget(self.right_col, stretch=1)
-
-        body_main_layout.addWidget(bottom_row, stretch=1)
-        parent_layout.addWidget(body_container, stretch=1)
-
-        self.build_analysis_content()
-        self.build_connection_content()
-
-    def build_analysis_content(self):
-        left_layout = QVBoxLayout(self.left_col)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(0) 
+        inner_left_layout = QVBoxLayout()
+        inner_left_layout.setSpacing(0)
         
-        th_val = self.operator_row.get("pulse_threshold_critical")
-        norm_val = self.operator_row.get("pulse_normal")
+        threshold_value = self.operator_data.get("pulse_threshold_critical")
+        normal_value = self.operator_data.get("pulse_normal")
+        
+        input_frame = QWidget()
+        input_layout = QHBoxLayout(input_frame)
+        
+        field_values_layout = QVBoxLayout()
+        
+        self.edit_threshold = self.build_input_row(field_values_layout, "Укажите порог вашего пульса", threshold_value)
+        self.edit_normal = self.build_input_row(field_values_layout, "Укажите норму вашего пульса", normal_value)
+        input_layout.addLayout(field_values_layout)
+        
+        if not (threshold_value and normal_value):
+            button_save = create_button("Записать", 110, 40, self.save_data_to_csv)
+            input_layout.addWidget(button_save, alignment=Qt.AlignCenter)
+        
+        inner_left_layout.addWidget(input_frame)
+        
+        separator_line_two = QFrame()
+        separator_line_two.setFixedHeight(4)
+        separator_line_two.setStyleSheet("background-color: white;")
+        inner_left_layout.addWidget(separator_line_two)
+        
+        label_terminal_title = create_label("Терминальный блок информации", align=Qt.AlignCenter)
+        label_terminal_title.setFixedHeight(44)
+        inner_left_layout.addWidget(label_terminal_title)
 
-        inputs_frame = QWidget()
-        inputs_layout = QHBoxLayout(inputs_frame)
-        inputs_layout.setContentsMargins(20, 15, 20, 15)
+        self.label_terminal = create_label("", align=Qt.AlignTop)
+        self.label_terminal.setStyleSheet(f"background-color: {COLOR_BTN_BG}; color: white; padding: 20px; margin: 10px;")
+        inner_left_layout.addWidget(self.label_terminal, stretch=1)
+        left_column_layout.addLayout(inner_left_layout)
+
+        self.right_column = QFrame()
+        self.right_column.setStyleSheet(f"background-color: {COLOR_BG};")
+        body_layout.addWidget(self.right_column, stretch=1)
         
-        fields_vbox = QVBoxLayout()
-        fields_vbox.setSpacing(10)
+        right_column_layout = QVBoxLayout(self.right_column)
+        right_column_layout.setContentsMargins(0, 0, 0, 0)
+
+        label_right_title = create_label("Вид подключения", align=Qt.AlignCenter)
+        label_right_title.setFixedHeight(44)
+        label_right_title.setStyleSheet("border-bottom: 4px solid white;")
+        right_column_layout.addWidget(label_right_title)
+
+        inner_right_layout = QVBoxLayout()
+        inner_right_layout.setContentsMargins(10, 10, 10, 10)
         
-        row1 = QHBoxLayout()
-        lbl_p1 = create_label("Укажите порог вашего пульса", 12)
-        lbl_p1.setFixedWidth(280)
-        row1.addWidget(lbl_p1)
+        images_layout = QHBoxLayout()
         
-        if th_val:
-            val_th = create_label(th_val, 14)
-            val_th.setFixedWidth(200)
-            row1.addWidget(val_th)
-        else:
-            self.edit_threshold = create_line_edit(height=35, font_size=14, padding=5)
-            self.edit_threshold.setFixedWidth(200)
-            row1.addWidget(self.edit_threshold)
-        row1.addStretch()
-        
-        row2 = QHBoxLayout()
-        lbl_p2 = create_label("Укажите норму вашего пульса", 12)
-        lbl_p2.setFixedWidth(280)
-        row2.addWidget(lbl_p2)
-        
-        if norm_val:
-            val_norm = create_label(norm_val, 14)
-            val_norm.setFixedWidth(200)
-            row2.addWidget(val_norm)
-        else:
-            self.edit_normal = create_line_edit(height=35, font_size=14, padding=5)
-            self.edit_normal.setFixedWidth(200)
-            row2.addWidget(self.edit_normal)
-        row2.addStretch()
-        
-        fields_vbox.addLayout(row1)
-        fields_vbox.addLayout(row2)
-        inputs_layout.addLayout(fields_vbox)
-        
-        if not (th_val and norm_val):
-            btn_save = QPushButton("Записать")
-            btn_save.setFixedSize(110, 40)
-            btn_save.setStyleSheet(getbtn_style())
-            btn_save.clicked.connect(self.save_to_csv)
-            inputs_layout.addWidget(btn_save, alignment=Qt.AlignVCenter | Qt.AlignRight)
-        else:
-            inputs_layout.addStretch()
+        image_names = ["hand1.png", "hand2.png"]
+        for name in image_names:
+            image_box = QLabel()
+            image_box.setStyleSheet("background-color: white;")
+            image_box.setAlignment(Qt.AlignCenter)
+            pixmap = QPixmap(f"assets/{name}").scaled(100, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            image_box.setPixmap(pixmap)
+            images_layout.addWidget(image_box)
             
-        left_layout.addWidget(inputs_frame)
+        inner_right_layout.addLayout(images_layout)
+        
+        label_connection_hint = create_label("Наклеить электроды как показано\nна рисунке и подключить контакты")
+        inner_right_layout.addWidget(label_connection_hint)
+        
+        self.button_next = create_button("Далее", 110, 36, self.go_next)
+        inner_right_layout.addWidget(self.button_next, alignment=Qt.AlignRight)
+        right_column_layout.addLayout(inner_right_layout)
 
-        line_sep = QFrame()
-        line_sep.setFixedHeight(4)
-        line_sep.setStyleSheet("background-color: white; border: none;")
-        left_layout.addWidget(line_sep)
-        
-        term_header_frame = QWidget()
-        term_header_frame.setFixedHeight(44)
-        term_header_layout = QVBoxLayout(term_header_frame)
-        term_header_layout.setContentsMargins(0,0,0,0)
-        
-        lbl_term_title = create_label("Терминальный блок информации", 14, align=Qt.AlignCenter)
-        term_header_layout.addWidget(lbl_term_title)
-        left_layout.addWidget(term_header_frame)
-        
-        term_content_frame = QWidget()
-        term_content_layout = QVBoxLayout(term_content_frame)
-        term_content_layout.setContentsMargins(20, 0, 20, 20)
-        
-        term_box = QFrame()
-        term_box.setStyleSheet(f"background-color: {COLOR_BTN_BG};")
-        term_box_layout = QVBoxLayout(term_box)
-        
-        self.lbl_term = create_label("", 11, color="white", align=Qt.AlignTop | Qt.AlignLeft)
-        term_box_layout.addWidget(self.lbl_term)
-        
-        term_content_layout.addWidget(term_box)
-        left_layout.addWidget(term_content_frame, stretch=1)
-        
-        self.update_terminal_ui("WAIT", "WAIT", "--")
+    def init_logic(self):
+        self.update_terminal_interface("WAIT", "WAIT", "--")
+        self.serial_thread = QThread()
+        self.serial_worker = SerialWorker(port_name="COM5")
+        self.serial_worker.moveToThread(self.serial_thread)
+        self.serial_thread.started.connect(self.serial_worker.run)
+        self.serial_worker.data_received.connect(self.update_terminal_interface)
+        self.serial_thread.start()
 
-    def build_connection_content(self):
-        right_layout = QVBoxLayout(self.right_col)
-        right_layout.setContentsMargins(20, 20, 20, 20)
+    def go_next(self):
+        self.stop_serial_worker()
+        self.signal_next.emit(self.operator_data)
+        self.hide()
+
+    def build_input_row(self, parent_layout, text_label, value_data):
+        row_layout = QHBoxLayout()
+        label_widget = create_label(text_label)
+        row_layout.addWidget(label_widget)
         
-        images_hbox = QHBoxLayout()
-        images_hbox.setSpacing(20)
-        
-        for img_name in ["hand1.png", "hand2.png"]:
-            box = QLabel()
-            box.setStyleSheet("background-color: white;")
-            img_path = f"assets/{img_name}"
-            if os.path.exists(img_path):
-                 box.setPixmap(QPixmap(img_path).scaled(100, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            box.setAlignment(Qt.AlignCenter)
-            images_hbox.addWidget(box)
+        if value_data:
+            value_label = create_label(value_data)
+            row_layout.addWidget(value_label)
+            parent_layout.addLayout(row_layout)
+            return None
             
-        right_layout.addLayout(images_hbox)
-        right_layout.addSpacing(15)
-        
-        lbl_hint = create_label("Наклеить электроды как показано\nна рисунке и подключить контакты", 11)
-        lbl_hint.setWordWrap(True)
-        right_layout.addWidget(lbl_hint)
-        right_layout.addStretch()
-        
-        btn_next_layout = QHBoxLayout()
-        btn_next_layout.addStretch()
-        self.btn_next = QPushButton("Далее")
-        self.btn_next.setFixedSize(110, 36)
-        self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet(getbtn_style())
-        self.btn_next.clicked.connect(self.go_control)
-        btn_next_layout.addWidget(self.btn_next)
-        
-        right_layout.addLayout(btn_next_layout)
+        input_widget = create_line_edit(35, 14, 5)
+        input_widget.setFixedWidth(200)
+        row_layout.addWidget(input_widget)
+        parent_layout.addLayout(row_layout)
+        return input_widget
 
-    def update_terminal_ui(self, status_conn, status_pulse, current_pulse):
-        txt_conn = "OK" if status_conn == "OK" else "FAIL"
-        lines = [
-            f"Проверка сигнала . . . . . . . . . . . . . . . {txt_conn}",
-            f"Проверка пульса . . . . . . . . . . . . . . . . {status_pulse}",
+    def update_terminal_interface(self, signal_status, pulse_status, current_pulse):
+        lines_list = [
+            f"Проверка сигнала . . . . . . . . . . . . . . . {signal_status}",
+            f"Проверка пульса . . . . . . . . . . . . . . . . {pulse_status}",
             f"Пульс . . . . . . . . . . . . . . . . . . . . . . . . . . . {current_pulse}"
         ]
         
-        if txt_conn == "OK" and status_pulse == "OK" and current_pulse not in ["--", "ERR"]:
-            lines.append("Для перехода в режим управления нажмите далее")
+        if signal_status == "OK" and pulse_status == "OK" and current_pulse not in ["--", "ERR"]:
+            lines_list.append("Для перехода в режим управления нажмите далее")
             
-        self.lbl_term.setText("\n".join(lines))
+        self.label_terminal.setText("\n".join(lines_list))
 
-    def save_to_csv(self):
-        th_val = self.edit_threshold.text().strip()
-        norm_val = self.edit_normal.text().strip()
+    def save_data_to_csv(self):
+        threshold_text = self.edit_threshold.text().strip()
+        normal_text = self.edit_normal.text().strip()
         
-        if not th_val.isdigit() or not norm_val.isdigit():
-            return QMessageBox.warning(self, "Ошибка", "Введите числовые значения пульса.")
-
-        updates = {
-            "pulse_threshold_critical": th_val,
-            "pulse_normal": norm_val,
+        if not threshold_text.isdigit() or not normal_text.isdigit():
+            QMessageBox.warning(self, "Ошибка", "Введите числа.")
+            return
+        
+        update_dictionary = {
+            "pulse_threshold_critical": threshold_text, 
+            "pulse_normal": normal_text, 
             "current_pulse": "0"
         }
-
-        try:
-            update_db(self.csv_path, self.operator_row.get("id"), updates)
-            
-            self.operator_row.update(updates)
-            
-            QMessageBox.information(self, "Успех", "Данные пульса сохранены.")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка CSV", f"Не удалось записать файл:\n{e}")
-
-    def go_instruction(self):
-        self.sig_go_instruction.emit(self.operator_row)
-        self.hide()
         
-    def go_control(self):
-        self.sig_go_control.emit(self.operator_row)
-        self.hide()
+        try:
+            update_db(self.csv_file_path, self.operator_data.get("id"), update_dictionary)
+            self.operator_data.update(update_dictionary)
+            QMessageBox.information(self, "Успех", "Данные сохранены")
+        except Exception as error:
+            QMessageBox.critical(self, "Ошибка", str(error))
+
+    def stop_serial_worker(self):   
+        self.serial_worker.stop()
+        self.serial_thread.quit()
+        self.serial_thread.wait()
 
     def closeEvent(self, event):
-        self.worker.stop()
-        self.thread.quit()
-        self.thread.wait()
+        self.stop_serial_worker()
         super().closeEvent(event)

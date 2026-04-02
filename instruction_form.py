@@ -1,262 +1,171 @@
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
-    QWidget, QPushButton, QFrame, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QLabel
-)
-
-from utils import (
-    BaseWindow, ShapeWidget, create_label,
-    COLOR_BG, COLOR_GREEN, getbtn_style
-)
+from utils import *
 
 class InstructionForm(BaseWindow):
-    sig_go_analysis = pyqtSignal(dict)
-    sig_go_control = pyqtSignal(dict)
+    signal_next = pyqtSignal(dict)
 
-    def __init__(self, operator_row: dict = None):
-        super().__init__(1000, 484, "Инструкция и подключение")
+    def __init__(self, operator_data=None): 
+        super().__init__(1000, 490, "Инструкция")
+        self.operator_data = operator_data if operator_data is not None else {}
         
-        self.operator_row = operator_row or {}
+        self.build_ui()
 
-        content_layout = QVBoxLayout(self.content_container)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
+    def build_ui(self):
+        main_layout = QVBoxLayout(self.content_container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        self.build_ui(content_layout)
-
-    def build_ui(self, parent_layout):
         header_container = QWidget()
         header_container.setFixedHeight(120)
         header_container.setStyleSheet("background-color: white;")
+        header_grid = QGridLayout(header_container)
+        header_grid.setContentsMargins(0, 0, 0, 0)
+        header_grid.setColumnStretch(0, 2)
+        header_grid.setColumnStretch(1, 3)
+        header_grid.setColumnStretch(2, 2)
         
-        header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(4)
+        self.menu_frame = QFrame()
+        self.menu_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        header_grid.addWidget(self.menu_frame, 0, 0)
+        
+        self.logo_frame = QFrame()
+        self.logo_frame.setStyleSheet(f"background-color: {COLOR_GREEN};")
+        header_grid.addWidget(self.logo_frame, 0, 1)
+        
+        self.id_frame = QFrame()
+        self.id_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        header_grid.addWidget(self.id_frame, 0, 2)
+        
+        main_layout.addWidget(header_container)
 
-        menu_frame = QFrame()
-        menu_frame.setStyleSheet(f"background-color: {COLOR_BG};")
-        logo_frame = QFrame()
-        logo_frame.setStyleSheet(f"background-color: {COLOR_GREEN};")
-        id_frame = QFrame()
-        id_frame.setStyleSheet(f"background-color: {COLOR_BG};")
+        menu_layout = QVBoxLayout(self.menu_frame)
+        label_menu = create_label("Меню управления", 18, align=Qt.AlignCenter)
+        menu_layout.addWidget(label_menu)
+        
+        buttons_layout = QHBoxLayout()
+        button_style = "color: white; border-radius: 18px; font: bold 14px 'Times New Roman';"
+        
+        button_instruction = QPushButton("Инструкция")
+        button_instruction.setFixedHeight(36)
+        button_instruction.setStyleSheet(f"background-color: {COLOR_GREEN}; {button_style}")
+        buttons_layout.addWidget(button_instruction)
+        
+        button_analysis = QPushButton("Анализ")
+        button_analysis.setFixedHeight(36)
+        button_analysis.setStyleSheet(f"background-color: purple; {button_style}")
+        buttons_layout.addWidget(button_analysis)
+        
+        button_control = QPushButton("Управление")
+        button_control.setFixedHeight(36)
+        button_control.setStyleSheet(f"background-color: purple; {button_style}")
+        buttons_layout.addWidget(button_control)
+        
+        menu_layout.addLayout(buttons_layout)
 
-        header_layout.addWidget(menu_frame, stretch=1)
-        header_layout.addWidget(logo_frame, stretch=1)
-        header_layout.addWidget(id_frame, stretch=1)
+        logo_layout = QVBoxLayout(self.logo_frame)
+        label_logo_title = create_label("НейроБодр", 24, "white", Qt.AlignCenter)
+        logo_layout.addWidget(label_logo_title)
+        
+        separator_line = QFrame()
+        separator_line.setFixedHeight(2)
+        separator_line.setStyleSheet("background-color: white; margin-left: 40px; margin-right: 40px;")
+        logo_layout.addWidget(separator_line)
+        
+        label_logo_subtitle = create_label("Программа для мониторинга\nсостояния водителей", color="white", align=Qt.AlignCenter)
+        logo_layout.addWidget(label_logo_subtitle)
 
-        menu_vbox = QVBoxLayout(menu_frame)
-        menu_vbox.setContentsMargins(10, 15, 10, 15)
+        id_layout = QVBoxLayout(self.id_frame)
+        id_layout.setContentsMargins(0, 0, 0, 0)
         
-        lbl_menu = create_label("Меню управления", 18, align=Qt.AlignCenter)
-        menu_vbox.addWidget(lbl_menu)
-        menu_vbox.addStretch()
+        label_id_title = create_label("Идентификация", align=Qt.AlignCenter)
+        label_id_title.setFixedHeight(48)
+        label_id_title.setStyleSheet("border-bottom: 4px solid white;")
+        id_layout.addWidget(label_id_title)
         
-        btn_hbox = QHBoxLayout()
-        b_style = "color: white; border-radius: 18px; font-family: Times New Roman; font-size: 14px; font-weight: bold;"
+        data_layout = QHBoxLayout()
+        data_layout.setContentsMargins(10, 10, 10, 10)
         
-        self.btn_instr = QPushButton("Инструкция")
-        self.btn_instr.setFixedHeight(36)
-        self.btn_instr.setStyleSheet(f"QPushButton {{ background-color: {COLOR_GREEN}; {b_style} }}")
+        label_operator_defined = create_label("Оператор\nопределен:")
+        data_layout.addWidget(label_operator_defined)
         
-        self.btn_analysis = QPushButton("Анализ")
-        self.btn_analysis.setFixedHeight(36)
-        self.btn_analysis.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_analysis.clicked.connect(self.open_analysis)
-        
-        self.btn_control = QPushButton("Управление")
-        self.btn_control.setFixedHeight(36)
-        self.btn_control.setStyleSheet(f"QPushButton {{ background-color: purple; {b_style} }}")
-        self.btn_control.clicked.connect(self.open_control)
-        
-        btn_hbox.addWidget(self.btn_instr)
-        btn_hbox.addWidget(self.btn_analysis)
-        btn_hbox.addWidget(self.btn_control)
-        menu_vbox.addLayout(btn_hbox)
-
-        logo_vbox = QVBoxLayout(logo_frame)
-        logo_vbox.setContentsMargins(0, 10, 0, 10)
-        logo_vbox.setSpacing(5)
-        
-        lbl_logo = create_label("НейроБодр", 24, bold=True, color="white", align=Qt.AlignCenter)
-        logo_vbox.addWidget(lbl_logo)
-        
-        line_layout = QHBoxLayout()
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        line = QFrame()
-        line.setFixedHeight(2)
-        line.setStyleSheet("background-color: white;")
-        line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        line_layout.addWidget(line, stretch=3) 
-        line_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        logo_vbox.addLayout(line_layout)
-        
-        lbl_desc = create_label("Программа для мониторинга\nсостояния водителей", 14, color="white", align=Qt.AlignCenter)
-        logo_vbox.addWidget(lbl_desc)
-
-        id_vbox = QVBoxLayout(id_frame)
-        id_vbox.setContentsMargins(0, 0, 0, 0)
-        id_vbox.setSpacing(0)
-        
-        lbl_id_title = create_label("Идентификация", 14, align=Qt.AlignCenter)
-        lbl_id_title.setFixedHeight(44)
-        id_vbox.addWidget(lbl_id_title)
-        
-        id_sep = QFrame()
-        id_sep.setFixedHeight(4)
-        id_sep.setStyleSheet("background-color: white;")
-        id_vbox.addWidget(id_sep)
-        
-        id_data_hbox = QHBoxLayout()
-        id_data_hbox.setContentsMargins(20, 10, 20, 10)
-        
-        lbl_op_status = create_label("Оператор\nопределен:", 14)
-        
-        f_name = self.operator_row.get("first_name", "")
-        l_name = self.operator_row.get("last_name", "")
-        self.lbl_op_name = create_label(f"{l_name} {f_name}", 16)
-        
-        id_data_hbox.addWidget(lbl_op_status)
-        id_data_hbox.addStretch()
-        id_data_hbox.addWidget(self.lbl_op_name)
-        
-        id_vbox.addLayout(id_data_hbox)
-
-        parent_layout.addWidget(header_container)
+        first_name = self.operator_data.get("first_name", "")
+        last_name = self.operator_data.get("last_name", "")
+        label_operator_name = create_label(f"{last_name} {first_name}", 16)
+        data_layout.addWidget(label_operator_name)
+        id_layout.addLayout(data_layout)
 
         body_container = QWidget()
         body_container.setStyleSheet("background-color: white;")
+        body_layout = QHBoxLayout(body_container)
+        body_layout.setContentsMargins(0, 4, 0, 0)
+        main_layout.addWidget(body_container, stretch=1)
+
+        self.left_column = QFrame()
+        self.left_column.setStyleSheet(f"background-color: {COLOR_BG};")
+        body_layout.addWidget(self.left_column, 2)
         
-        body_main_layout = QVBoxLayout(body_container)
-        body_main_layout.setContentsMargins(0, 4, 0, 0)
-        body_main_layout.setSpacing(4)
-
-        top_row = QWidget()
-        top_row.setFixedHeight(44)
-        top_layout = QHBoxLayout(top_row)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.setSpacing(4)
-
-        left_header = QFrame()
-        left_header.setStyleSheet(f"background-color: {COLOR_BG};")
-        right_header = QFrame()
-        right_header.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        top_layout.addWidget(left_header, stretch=2)
-        top_layout.addWidget(right_header, stretch=1)
-
-        lh_layout = QVBoxLayout(left_header)
-        lbl_instruction = create_label("Инструкция", 14, align=Qt.AlignCenter)
-        lh_layout.addWidget(lbl_instruction)
-
-        rh_layout = QVBoxLayout(right_header)
-        lbl_conn = create_label("Вид подключения", 14, align=Qt.AlignCenter)
-        rh_layout.addWidget(lbl_conn)
-
-        body_main_layout.addWidget(top_row)
-
-        bottom_row = QWidget()
-        bottom_layout = QHBoxLayout(bottom_row)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_layout.setSpacing(4)
-
-        self.left_col = QFrame()
-        self.left_col.setStyleSheet(f"background-color: {COLOR_BG};")
-        self.right_col = QFrame()
-        self.right_col.setStyleSheet(f"background-color: {COLOR_BG};")
-
-        bottom_layout.addWidget(self.left_col, stretch=2)
-        bottom_layout.addWidget(self.right_col, stretch=1)
-
-        body_main_layout.addWidget(bottom_row, stretch=1)
-        parent_layout.addWidget(body_container, stretch=1)
-
-        self.build_instruction_content()
-        self.build_connection_content()
-
-    def build_instruction_content(self):
-        left_layout = QVBoxLayout(self.left_col)
-        left_layout.setContentsMargins(15, 10, 15, 10)
-        left_layout.setSpacing(15)
+        left_column_layout = QVBoxLayout(self.left_column)
+        left_column_layout.setContentsMargins(0, 0, 0, 0)
         
-        data = [
-            (
-                "Зеленый индикатор на видео означает, хорошее состояние оператора.\n"
-                "Оператор бодрствует. ЧСС в пределах нормы. 'Норма'", 
-                "circle", "turquoise"
-            ),
-            (
-                "Желтый индикатор на видео означает 'Внимание' состояние\n"
-                "оператора выходит за пределы нормы: Падение ЧСС ниже на 20%\n"
-                "от нормы или повышение на 20%, но ниже критического порога.\n"
-                "Веки закрыты дольше 4 секунд (микросон). Наклон вперед/вбок\n"
-                "(эффект 'кивающей головы')", 
-                "triangle", "gold"
-            ),
-            (
-                "Красный индикатор на видео означает, 'Критическое' состояние:\n"
-                "ЧСС ниже на 30% от нормы или больше критического порога.\n"
-                "Наклон головы вперед/вбок (дольше 7 секунд) веки закрыты", 
-                "square", "red"
-            )
+        label_instruction_title = create_label("Инструкция", align=Qt.AlignCenter)
+        label_instruction_title.setFixedHeight(44)
+        label_instruction_title.setStyleSheet("border-bottom: 4px solid white;")
+        left_column_layout.addWidget(label_instruction_title)
+        
+        inner_left_layout = QVBoxLayout()
+        
+        instruction_items = [
+            ("Зеленый индикатор на видео означает, хорошее состояние оператора.\nОператор бодрствует. ЧСС в пределах нормы. 'Норма'", "circle", "turquoise"),
+            ("Желтый индикатор на видео означает 'Внимание' состояние\nоператора выходит за пределы нормы: Падение ЧСС ниже на 20%\nот нормы или повышение на 20%, но ниже критического порога.\nВеки закрыты дольше 4 секунд (микросон). Наклон вперед/вбок\n(эффект 'кивающей головы')", "triangle", "gold"),
+            ("Красный индикатор на видео означает, 'Критическое' состояние:\nЧСС ниже на 30% от нормы или больше критического порога.\nНаклон головы вперед/вбок (дольше 7 секунд) веки закрыты", "square", "red")
         ]
-
-        for text, shape, color in data:
+        
+        for text, shape, color in instruction_items:
             row_layout = QHBoxLayout()
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(15)
+            shape_widget = ShapeWidget(shape, color)
+            row_layout.addWidget(shape_widget, alignment=Qt.AlignTop)
             
-            icon = ShapeWidget(shape, color)
-            row_layout.addWidget(icon, alignment=Qt.AlignTop)
+            label_text = create_label(text)
+            row_layout.addWidget(label_text, stretch=1)
             
-            lbl = create_label(text, 11)
-            lbl.setWordWrap(True)
-            row_layout.addWidget(lbl, stretch=1)
+            inner_left_layout.addLayout(row_layout)
             
-            left_layout.addLayout(row_layout)
-            
-        left_layout.addStretch()
+        left_column_layout.addLayout(inner_left_layout)
 
-    def build_connection_content(self):
-        right_layout = QVBoxLayout(self.right_col)
-        right_layout.setContentsMargins(20, 20, 20, 20)
+        self.right_column = QFrame()
+        self.right_column.setStyleSheet(f"background-color: {COLOR_BG};")
+        body_layout.addWidget(self.right_column, 1)
         
-        images_hbox = QHBoxLayout()
-        images_hbox.setSpacing(20)
+        right_column_layout = QVBoxLayout(self.right_column)
+        right_column_layout.setContentsMargins(0, 0, 0, 0)
         
-        for img_name in ["hand1.png", "hand2.png"]:
-            box = QLabel()
-            box.setStyleSheet("background-color: white;")
-            try:
-                pix = QPixmap(f"assets/{img_name}")
-                box.setPixmap(pix.scaled(100, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            except:
-                pass
-            box.setAlignment(Qt.AlignCenter)
-            images_hbox.addWidget(box)
+        label_right_title = create_label("Вид подключения", align=Qt.AlignCenter)
+        label_right_title.setFixedHeight(44)
+        label_right_title.setStyleSheet("border-bottom: 4px solid white;")
+        right_column_layout.addWidget(label_right_title)
+
+        inner_right_layout = QVBoxLayout()
+        inner_right_layout.setContentsMargins(10, 10, 10, 10)
+        
+        images_layout = QHBoxLayout()
+        
+        image_names = ["hand1.png", "hand2.png"]
+        for name in image_names:
+            image_box = QLabel()
+            image_box.setStyleSheet("background-color: white;")
+            image_box.setAlignment(Qt.AlignCenter)
+            pixmap = QPixmap(f"assets/{name}").scaled(100, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            image_box.setPixmap(pixmap)
+            images_layout.addWidget(image_box)
             
-        right_layout.addLayout(images_hbox)
-        right_layout.addSpacing(15)
+        inner_right_layout.addLayout(images_layout)
         
-        lbl_hint = create_label("Наклеить электроды как показано\nна рисунке и подключить контакты", 11)
-        lbl_hint.setWordWrap(True)
-        right_layout.addWidget(lbl_hint)
-        right_layout.addStretch()
+        label_connection_hint = create_label("Наклеить электроды как показано\nна рисунке и подключить контакты")
+        inner_right_layout.addWidget(label_connection_hint)
         
-        btn_next_layout = QHBoxLayout()
-        btn_next_layout.addStretch()
-        self.btn_next = QPushButton("Далее")
-        self.btn_next.setFixedSize(110, 36)
-        self.btn_next.setCursor(Qt.PointingHandCursor)
-        self.btn_next.setStyleSheet(getbtn_style())
-        self.btn_next.clicked.connect(self.open_analysis)
-        btn_next_layout.addWidget(self.btn_next)
-        
-        right_layout.addLayout(btn_next_layout)
+        self.button_next = create_button("Далее", 110, 36, self.go_next)
+        inner_right_layout.addWidget(self.button_next, alignment=Qt.AlignRight)
+        right_column_layout.addLayout(inner_right_layout)
 
-    def open_control(self):
-        self.sig_go_control.emit(self.operator_row)
-        self.hide()
-
-    def open_analysis(self):
-        self.sig_go_analysis.emit(self.operator_row)
+    def go_next(self):
+        self.signal_next.emit(self.operator_data)
         self.hide()
