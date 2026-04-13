@@ -42,15 +42,13 @@ class RemoteForm(BaseWindow):
         
         self.operator_data = {}
         self.current_status = "NORMAL"
-        self.last_played_status = None
         
-        self.audio_player = QMediaPlayer()
         self.timer_monitor = QTimer(self)
 
         self.status_configuration = {
-            "NORMAL": ("НОРМА", "green", "turquoise", COLOR_DISABLED, COLOR_DISABLED, None, "Состояние нормальное\nПульс {}"),
-            "WARNING": ("ВНИМАНИЕ", "gold", COLOR_DISABLED, "gold", COLOR_DISABLED, "yellowSound.mp3", "Состояние 'ВНИМАНИЕ'\nПульс {}\nЗапуск звукового оповещения!\nНеобходимо связаться с водителем!"),
-            "CRITICAL": ("КРИТИЧНО!", "red", COLOR_DISABLED, COLOR_DISABLED, "red", "redSound.mp3", "Состояние критичное!\nПульс {}\nЗапуск звукового оповещения!\nНеобходимо связаться с водителем!")
+            "NORMAL": ("НОРМА", "green", "turquoise", COLOR_DISABLED, COLOR_DISABLED, "Состояние нормальное\nПульс {}"),
+            "WARNING": ("ВНИМАНИЕ", "gold", COLOR_DISABLED, "gold", COLOR_DISABLED, "Состояние 'ВНИМАНИЕ'\nПульс {}\nЗапуск звукового оповещения!\nНеобходимо связаться с водителем!"),
+            "CRITICAL": ("КРИТИЧНО!", "red", COLOR_DISABLED, COLOR_DISABLED, "red", "Состояние критичное!\nПульс {}\nЗапуск звукового оповещения!\nНеобходимо связаться с водителем!")
         }
 
         self.build_ui()
@@ -257,7 +255,7 @@ class RemoteForm(BaseWindow):
             self.audio_player.stop()
             self.last_played_status = self.current_status
 
-        status_text, text_color, color_green_shape, color_yellow_shape, color_red_shape, sound_file, terminal_template = self.status_configuration[self.current_status]
+        status_text, text_color, color_green_shape, color_yellow_shape, color_red_shape, terminal_template = self.status_configuration[self.current_status]
 
         self.label_status.setText(f"Состояние: <span style='color:{text_color}'>{status_text}</span>")
         self.label_pulse_value.setStyleSheet(f"color: {text_color};")
@@ -268,15 +266,8 @@ class RemoteForm(BaseWindow):
         
         self.label_middle_info.setText(terminal_template.format(pulse_string))
 
-        if is_status_changed and sound_file:
-            media_content = QMediaContent(QUrl.fromLocalFile(sound_file))
-            self.audio_player.setMedia(media_content)
-            self.audio_player.play()
-
     def stop_program(self):
         self.timer_monitor.stop()
-        self.audio_player.stop()
-        self.last_played_status = None
 
         self.shape_green.set_color(COLOR_DISABLED)
         self.shape_yellow.set_color(COLOR_DISABLED)

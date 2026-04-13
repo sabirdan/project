@@ -121,23 +121,30 @@ class RegistrationForm(BaseWindow):
         self.update_ui()
 
     def on_save_clicked(self):
+        surname = self.input_fields["Фамилия"].text().strip()
+        name = self.input_fields["Имя"].text().strip()
         age_text = self.input_fields["Возраст"].text()
-        if not age_text.isdigit() or int(age_text) < 18:
-            QMessageBox.warning(self, "Ошибка", "Минимальный возраст 18 лет")
+
+        if not surname or not name:
+            QMessageBox.warning(self, "Ошибка", "Заполните обязательные поля: Фамилия и Имя")
             return
-            
+
+        if not age_text.isdigit() or int(age_text) < 18:
+            QMessageBox.warning(self, "Ошибка", "Возраст менее 18 лет")
+            return
+
         self.current_id = next_id(self.csv_file_path)
         with open(self.csv_file_path, "a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow([
-                str(self.current_id), 
-                self.input_fields["Фамилия"].text(), 
-                self.input_fields["Имя"].text(),
-                self.input_fields["Отчество"].text(), 
-                age_text, 
-                now_date_str(), 
+                str(self.current_id),
+                surname,
+                name,
+                self.input_fields["Отчество"].text(),
+                age_text,
+                now_date_str(),
                 now_time_str(),
-                self.software_start_time, 
+                self.software_start_time,
                 "00:00:00"
             ])
 

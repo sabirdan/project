@@ -355,12 +355,12 @@ class ControlForm(BaseWindow):
         pulse_value = self.current_pulse
         calculated_state = "NORMAL"
         
-        is_pulse_critically_low = pulse_value > 0 and pulse_value <= (self.pulse_minimum * 0.7)
+        is_pulse_critically_low = pulse_value > 0 and pulse_value <= (self.pulse_minimum * 0.65)
         is_pulse_critically_high = pulse_value >= self.pulse_critical
         is_critical = is_pulse_critically_low or is_pulse_critically_high
         
-        is_pulse_warning_low = pulse_value > 0 and pulse_value <= (self.pulse_minimum * 0.8)
-        is_pulse_warning_high = pulse_value >= (self.pulse_maximum * 1.2) and pulse_value < self.pulse_critical
+        is_pulse_warning_low = pulse_value > 0 and pulse_value <= (self.pulse_minimum * 0.85)
+        is_pulse_warning_high = pulse_value >= (self.pulse_maximum * 1.15) and pulse_value < self.pulse_critical
         is_warning = is_pulse_warning_low or is_pulse_warning_high
         
         if is_critical or seconds_bad_posture > 7.0:
